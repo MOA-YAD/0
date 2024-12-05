@@ -221,7 +221,7 @@ class _MessagesIter(RequestIter):
         #
         # We also assume the API will always return, at least, one message if
         # there is more to fetch.
-        if not r.messages or r.messages[0].id <= self.request.limit:
+        if not r.messages or (not self.reverse and r.messages[0].id <= self.request.limit):
             return True
 
         # Get the last message that's not empty (in some rare cases
@@ -553,7 +553,9 @@ class MessageMethods:
             scheduled=scheduled
         )
 
-    async def get_messages(self: 'TelegramClient', *args, **kwargs) -> 'hints.TotalList':
+    async def get_messages(
+            self: 'TelegramClient', *args, **kwargs
+    ) -> typing.Union['hints.TotalList', typing.Optional['types.Message']]:
         """
         Same as `iter_messages()`, but returns a
         `TotalList <telethon.helpers.TotalList>` instead.
@@ -824,6 +826,9 @@ class MessageMethods:
                 await client.send_message(chat, 'Hi, future!', schedule=timedelta(minutes=5))
         """
         if file is not None:
+            if isinstance(message, types.Message):
+                formatting_entities = formatting_entities or message.entities
+                message = message.message
             return await self.send_file(
                 entity, file, caption=message, reply_to=reply_to,
                 attributes=attributes, parse_mode=parse_mode,
@@ -929,7 +934,8 @@ class MessageMethods:
             with_my_score: bool = None,
             silent: bool = None,
             as_album: bool = None,
-            schedule: 'hints.DateLike' = None
+            schedule: 'hints.DateLike' = None,
+            drop_author: bool = None,
     ) -> 'typing.Sequence[types.Message]':
         """
         Forwards the given messages to the specified entity.
@@ -1041,7 +1047,8 @@ class MessageMethods:
                 silent=silent,
                 background=background,
                 with_my_score=with_my_score,
-                schedule_date=schedule
+                schedule_date=schedule,
+                drop_author=drop_author
             )
             result = await self(req)
             sent.extend(self._get_response_message(req, result, entity))
