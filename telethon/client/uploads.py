@@ -67,24 +67,31 @@ def _resize_photo_if_needed(
         except KeyError:
             kwargs = {}
 
-        # Check if image is within acceptable bounds, if so, check if the image is at or below 10 MB, or assume it isn't if size is None or 0
-        if image.width <= width and image.height <= height and (before <= 10000000 if before else False):
-            return file
+        if image.mode == 'RGB':
+            # Check if image is within acceptable bounds, if so, check if the image is at or below 10 MB, or assume it isn't if size is None or 0
+            if image.width <= width and image.height <= height and (before <= 10000000 if before else False):
+                return file
 
-        image.thumbnail((width, height), PIL.Image.LANCZOS)
-
-        alpha_index = image.mode.find('A')
-        if alpha_index == -1:
-            # If the image mode doesn't have alpha
-            # channel then don't bother masking it away.
+            # If the image is already RGB, don't convert it
+            # certain modes such as 'P' have no alpha index but can't be saved as JPEG directly
+            image.thumbnail((width, height), PIL.Image.LANCZOS)
             result = image
         else:
             # We could save the resized image with the original format, but
             # JPEG often compresses better -> smaller size -> faster upload
             # We need to mask away the alpha channel ([3]), since otherwise
             # IOError is raised when trying to save alpha channels in JPEG.
+            image.thumbnail((width, height), PIL.Image.LANCZOS)
             result = PIL.Image.new('RGB', image.size, background)
-            result.paste(image, mask=image.split()[alpha_index])
+            mask = None
+
+            if image.has_transparency_data:
+                if image.mode == 'RGBA':
+                    mask = image.getchannel('A')
+                else:
+                    mask = image.convert('RGBA').getchannel('A')
+
+            result.paste(image, mask=mask)
 
         buffer = io.BytesIO()
         result.save(buffer, 'JPEG', progressive=True, **kwargs)
@@ -133,6 +140,8 @@ class UploadMethods:
             comment_to: 'typing.Union[int, types.Message]' = None,
             ttl: int = None,
             nosound_video: bool = None,
+            send_as: typing.Optional['hints.EntityLike'] = None,
+            message_effect_id: typing.Optional[int] = None,
             **kwargs) -> typing.Union[typing.List[typing.Any], typing.Any]:
         """
         Sends message with the given file to the specified entity.
@@ -315,6 +324,16 @@ class UploadMethods:
                 on non-video files. This is set to ``True`` for albums, as gifs
                 cannot be sent in albums.
 
+            send_as (`entity`):
+                Unique identifier (int) or username (str) of the chat or channel to send the message as.
+                You can use this to send the message on behalf of a chat or channel where you have appropriate permissions.
+                Use the GetSendAs to return the list of message sender identifiers, which can be used to send messages in the chat,
+                This setting applies to the current message and will remain effective for future messages unless explicitly changed.
+                To set this behavior permanently for all messages, use SaveDefaultSendAs.
+
+            message_effect_id (`int`, optional):
+                Unique identifier of the message effect to be added to the message; for private chats only
+
         Returns
             The `Message <telethon.tl.custom.message.Message>` (or messages)
             containing the sent file, or messages if a list of them was passed.
@@ -414,6 +433,7 @@ class UploadMethods:
                     parse_mode=parse_mode, silent=silent, schedule=schedule,
                     supports_streaming=supports_streaming, clear_draft=clear_draft,
                     force_document=force_document, background=background,
+                    send_as=send_as, message_effect_id=message_effect_id
                 )
                 file = file[10:]
                 captions = captions[10:]
@@ -448,7 +468,9 @@ class UploadMethods:
             entity, media, reply_to=reply_to, message=caption,
             entities=msg_entities, reply_markup=markup, silent=silent,
             schedule_date=schedule, clear_draft=clear_draft,
-            background=background
+            background=background,
+            send_as=await self.get_input_entity(send_as) if send_as else None,
+            effect=message_effect_id
         )
         return self._get_response_message(request, await self(request), entity)
 
@@ -457,7 +479,9 @@ class UploadMethods:
                           progress_callback=None, reply_to=None,
                           parse_mode=(), silent=None, schedule=None,
                           supports_streaming=None, clear_draft=None,
-                          force_document=False, background=None, ttl=None):
+                          force_document=False, background=None, ttl=None,
+                          send_as: typing.Optional['hints.EntityLike'] = None,
+                          message_effect_id: typing.Optional[int] = None):
         """Specialized version of .send_file for albums"""
         # We don't care if the user wants to avoid cache, we will use it
         # anyway. Why? The cached version will be exactly the same thing
@@ -509,7 +533,7 @@ class UploadMethods:
                 ))
 
                 fm = utils.get_input_media(r.photo)
-            elif isinstance(fm, types.InputMediaUploadedDocument):
+            elif isinstance(fm, (types.InputMediaUploadedDocument, types.InputMediaDocumentExternal)):
                 r = await self(functions.messages.UploadMediaRequest(
                     entity, media=fm
                 ))
@@ -532,7 +556,9 @@ class UploadMethods:
         request = functions.messages.SendMultiMediaRequest(
             entity, reply_to=None if reply_to is None else types.InputReplyToMessage(reply_to), multi_media=media,
             silent=silent, schedule_date=schedule, clear_draft=clear_draft,
-            background=background
+            background=background,
+            send_as=await self.get_input_entity(send_as) if send_as else None,
+            effect=message_effect_id
         )
         result = await self(request)
 

@@ -6,7 +6,7 @@ import os
 import struct
 from datetime import datetime
 if TYPE_CHECKING:
-    from ...tl.types import TypeChatBannedRights, TypeChatReactions, TypeDataJSON, TypeDialogFilter, TypeInlineBotSwitchPM, TypeInlineBotWebView, TypeInputBotApp, TypeInputBotInlineMessageID, TypeInputBotInlineResult, TypeInputChatPhoto, TypeInputCheckPasswordSRP, TypeInputDialogPeer, TypeInputDocument, TypeInputEncryptedChat, TypeInputEncryptedFile, TypeInputFile, TypeInputGeoPoint, TypeInputMedia, TypeInputMessage, TypeInputPeer, TypeInputReplyTo, TypeInputSingleMedia, TypeInputStickerSet, TypeInputStickeredMedia, TypeInputUser, TypeInputWallPaper, TypeMessageEntity, TypeMessagesFilter, TypeReaction, TypeReplyMarkup, TypeReportReason, TypeSendMessageAction, TypeShippingOption, TypeTextWithEntities, TypeWallPaperSettings
+    from ...tl.types import TypeChatBannedRights, TypeChatReactions, TypeDataJSON, TypeDialogFilter, TypeInlineBotSwitchPM, TypeInlineBotWebView, TypeInlineQueryPeerType, TypeInputBotApp, TypeInputBotInlineMessageID, TypeInputBotInlineResult, TypeInputChatPhoto, TypeInputCheckPasswordSRP, TypeInputDialogPeer, TypeInputDocument, TypeInputEncryptedChat, TypeInputEncryptedFile, TypeInputFile, TypeInputGeoPoint, TypeInputMedia, TypeInputMessage, TypeInputPeer, TypeInputQuickReplyShortcut, TypeInputReplyTo, TypeInputSingleMedia, TypeInputStickerSet, TypeInputStickeredMedia, TypeInputUser, TypeInputWallPaper, TypeMessageEntity, TypeMessagesFilter, TypePaidReactionPrivacy, TypeReaction, TypeReplyMarkup, TypeSendMessageAction, TypeShippingOption, TypeStarsSubscriptionPricing, TypeTextWithEntities, TypeWallPaperSettings
 
 
 
@@ -110,12 +110,12 @@ class AcceptUrlAuthRequest(TLRequest):
 
 
 class AddChatUserRequest(TLRequest):
-    CONSTRUCTOR_ID = 0xf24753e3
-    SUBCLASS_OF_ID = 0x8af52aac
+    CONSTRUCTOR_ID = 0xcbc6d107
+    SUBCLASS_OF_ID = 0x3dbe90a1
 
     def __init__(self, chat_id: int, user_id: 'TypeInputUser', fwd_limit: int):
         """
-        :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
+        :returns messages.InvitedUsers: Instance of InvitedUsers.
         """
         self.chat_id = chat_id
         self.user_id = user_id
@@ -134,7 +134,7 @@ class AddChatUserRequest(TLRequest):
 
     def _bytes(self):
         return b''.join((
-            b'\xe3SG\xf2',
+            b'\x07\xd1\xc6\xcb',
             struct.pack('<q', self.chat_id),
             self.user_id._bytes(),
             struct.pack('<i', self.fwd_limit),
@@ -235,6 +235,34 @@ class CheckHistoryImportPeerRequest(TLRequest):
         return cls(peer=_peer)
 
 
+class CheckQuickReplyShortcutRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xf1d0fbd3
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, shortcut: str):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.shortcut = shortcut
+
+    def to_dict(self):
+        return {
+            '_': 'CheckQuickReplyShortcutRequest',
+            'shortcut': self.shortcut
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xd3\xfb\xd0\xf1',
+            self.serialize_bytes(self.shortcut),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _shortcut = reader.tgread_string()
+        return cls(shortcut=_shortcut)
+
+
 class ClearAllDraftsRequest(TLRequest):
     CONSTRUCTOR_ID = 0x7e58ee9c
     SUBCLASS_OF_ID = 0xf5b399ac
@@ -303,13 +331,50 @@ class ClearRecentStickersRequest(TLRequest):
         return cls(attached=_attached)
 
 
+class ClickSponsoredMessageRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x8235057e
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, media: Optional[bool]=None, fullscreen: Optional[bool]=None, random_id: bytes=None):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.media = media
+        self.fullscreen = fullscreen
+        self.random_id = random_id if random_id is not None else int.from_bytes(os.urandom(4), 'big', signed=True)
+
+    def to_dict(self):
+        return {
+            '_': 'ClickSponsoredMessageRequest',
+            'media': self.media,
+            'fullscreen': self.fullscreen,
+            'random_id': self.random_id
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'~\x055\x82',
+            struct.pack('<I', (0 if self.media is None or self.media is False else 1) | (0 if self.fullscreen is None or self.fullscreen is False else 2)),
+            self.serialize_bytes(self.random_id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _media = bool(flags & 1)
+        _fullscreen = bool(flags & 2)
+        _random_id = reader.tgread_bytes()
+        return cls(media=_media, fullscreen=_fullscreen, random_id=_random_id)
+
+
 class CreateChatRequest(TLRequest):
-    CONSTRUCTOR_ID = 0x34a818
-    SUBCLASS_OF_ID = 0x8af52aac
+    CONSTRUCTOR_ID = 0x92ceddd4
+    SUBCLASS_OF_ID = 0x3dbe90a1
 
     def __init__(self, users: List['TypeInputUser'], title: str, ttl_period: Optional[int]=None):
         """
-        :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
+        :returns messages.InvitedUsers: Instance of InvitedUsers.
         """
         self.users = users
         self.title = title
@@ -332,7 +397,7 @@ class CreateChatRequest(TLRequest):
 
     def _bytes(self):
         return b''.join((
-            b'\x18\xa84\x00',
+            b'\xd4\xdd\xce\x92',
             struct.pack('<I', (0 if self.ttl_period is None or self.ttl_period is False else 1)),
             b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.users)),b''.join(x._bytes() for x in self.users),
             self.serialize_bytes(self.title),
@@ -459,6 +524,41 @@ class DeleteExportedChatInviteRequest(TLRequest):
         _peer = reader.tgread_object()
         _link = reader.tgread_string()
         return cls(peer=_peer, link=_link)
+
+
+class DeleteFactCheckRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xd1da940c
+    SUBCLASS_OF_ID = 0x8af52aac
+
+    def __init__(self, peer: 'TypeInputPeer', msg_id: int):
+        """
+        :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
+        """
+        self.peer = peer
+        self.msg_id = msg_id
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'DeleteFactCheckRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'msg_id': self.msg_id
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\x0c\x94\xda\xd1',
+            self.peer._bytes(),
+            struct.pack('<i', self.msg_id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        _msg_id = reader.read_int()
+        return cls(peer=_peer, msg_id=_msg_id)
 
 
 class DeleteHistoryRequest(TLRequest):
@@ -588,6 +688,71 @@ class DeletePhoneCallHistoryRequest(TLRequest):
         return cls(revoke=_revoke)
 
 
+class DeleteQuickReplyMessagesRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xe105e910
+    SUBCLASS_OF_ID = 0x8af52aac
+
+    def __init__(self, shortcut_id: int, id: List[int]):
+        """
+        :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
+        """
+        self.shortcut_id = shortcut_id
+        self.id = id
+
+    def to_dict(self):
+        return {
+            '_': 'DeleteQuickReplyMessagesRequest',
+            'shortcut_id': self.shortcut_id,
+            'id': [] if self.id is None else self.id[:]
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\x10\xe9\x05\xe1',
+            struct.pack('<i', self.shortcut_id),
+            b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.id)),b''.join(struct.pack('<i', x) for x in self.id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _shortcut_id = reader.read_int()
+        reader.read_int()
+        _id = []
+        for _ in range(reader.read_int()):
+            _x = reader.read_int()
+            _id.append(_x)
+
+        return cls(shortcut_id=_shortcut_id, id=_id)
+
+
+class DeleteQuickReplyShortcutRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x3cc04740
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, shortcut_id: int):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.shortcut_id = shortcut_id
+
+    def to_dict(self):
+        return {
+            '_': 'DeleteQuickReplyShortcutRequest',
+            'shortcut_id': self.shortcut_id
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'@G\xc0<',
+            struct.pack('<i', self.shortcut_id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _shortcut_id = reader.read_int()
+        return cls(shortcut_id=_shortcut_id)
+
+
 class DeleteRevokedExportedChatInvitesRequest(TLRequest):
     CONSTRUCTOR_ID = 0x56987bd5
     SUBCLASS_OF_ID = 0xf5b399ac
@@ -622,6 +787,58 @@ class DeleteRevokedExportedChatInvitesRequest(TLRequest):
         _peer = reader.tgread_object()
         _admin_id = reader.tgread_object()
         return cls(peer=_peer, admin_id=_admin_id)
+
+
+class DeleteSavedHistoryRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x6e98102b
+    SUBCLASS_OF_ID = 0x2c49c116
+
+    def __init__(self, peer: 'TypeInputPeer', max_id: int, min_date: Optional[datetime]=None, max_date: Optional[datetime]=None):
+        """
+        :returns messages.AffectedHistory: Instance of AffectedHistory.
+        """
+        self.peer = peer
+        self.max_id = max_id
+        self.min_date = min_date
+        self.max_date = max_date
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'DeleteSavedHistoryRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'max_id': self.max_id,
+            'min_date': self.min_date,
+            'max_date': self.max_date
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'+\x10\x98n',
+            struct.pack('<I', (0 if self.min_date is None or self.min_date is False else 4) | (0 if self.max_date is None or self.max_date is False else 8)),
+            self.peer._bytes(),
+            struct.pack('<i', self.max_id),
+            b'' if self.min_date is None or self.min_date is False else (self.serialize_datetime(self.min_date)),
+            b'' if self.max_date is None or self.max_date is False else (self.serialize_datetime(self.max_date)),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _peer = reader.tgread_object()
+        _max_id = reader.read_int()
+        if flags & 4:
+            _min_date = reader.tgread_date()
+        else:
+            _min_date = None
+        if flags & 8:
+            _max_date = reader.tgread_date()
+        else:
+            _max_date = None
+        return cls(peer=_peer, max_id=_max_id, min_date=_min_date, max_date=_max_date)
 
 
 class DeleteScheduledMessagesRequest(TLRequest):
@@ -943,16 +1160,56 @@ class EditExportedChatInviteRequest(TLRequest):
         return cls(peer=_peer, link=_link, revoked=_revoked, expire_date=_expire_date, usage_limit=_usage_limit, request_needed=_request_needed, title=_title)
 
 
+class EditFactCheckRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x589ee75
+    SUBCLASS_OF_ID = 0x8af52aac
+
+    def __init__(self, peer: 'TypeInputPeer', msg_id: int, text: 'TypeTextWithEntities'):
+        """
+        :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
+        """
+        self.peer = peer
+        self.msg_id = msg_id
+        self.text = text
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'EditFactCheckRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'msg_id': self.msg_id,
+            'text': self.text.to_dict() if isinstance(self.text, TLObject) else self.text
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'u\xee\x89\x05',
+            self.peer._bytes(),
+            struct.pack('<i', self.msg_id),
+            self.text._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        _msg_id = reader.read_int()
+        _text = reader.tgread_object()
+        return cls(peer=_peer, msg_id=_msg_id, text=_text)
+
+
 class EditInlineBotMessageRequest(TLRequest):
     CONSTRUCTOR_ID = 0x83557dba
     SUBCLASS_OF_ID = 0xf5b399ac
 
-    def __init__(self, id: 'TypeInputBotInlineMessageID', no_webpage: Optional[bool]=None, message: Optional[str]=None, media: Optional['TypeInputMedia']=None, reply_markup: Optional['TypeReplyMarkup']=None, entities: Optional[List['TypeMessageEntity']]=None):
+    def __init__(self, id: 'TypeInputBotInlineMessageID', no_webpage: Optional[bool]=None, invert_media: Optional[bool]=None, message: Optional[str]=None, media: Optional['TypeInputMedia']=None, reply_markup: Optional['TypeReplyMarkup']=None, entities: Optional[List['TypeMessageEntity']]=None):
         """
         :returns Bool: This type has no constructors.
         """
         self.id = id
         self.no_webpage = no_webpage
+        self.invert_media = invert_media
         self.message = message
         self.media = media
         self.reply_markup = reply_markup
@@ -967,6 +1224,7 @@ class EditInlineBotMessageRequest(TLRequest):
             '_': 'EditInlineBotMessageRequest',
             'id': self.id.to_dict() if isinstance(self.id, TLObject) else self.id,
             'no_webpage': self.no_webpage,
+            'invert_media': self.invert_media,
             'message': self.message,
             'media': self.media.to_dict() if isinstance(self.media, TLObject) else self.media,
             'reply_markup': self.reply_markup.to_dict() if isinstance(self.reply_markup, TLObject) else self.reply_markup,
@@ -976,7 +1234,7 @@ class EditInlineBotMessageRequest(TLRequest):
     def _bytes(self):
         return b''.join((
             b'\xba}U\x83',
-            struct.pack('<I', (0 if self.no_webpage is None or self.no_webpage is False else 2) | (0 if self.message is None or self.message is False else 2048) | (0 if self.media is None or self.media is False else 16384) | (0 if self.reply_markup is None or self.reply_markup is False else 4) | (0 if self.entities is None or self.entities is False else 8)),
+            struct.pack('<I', (0 if self.no_webpage is None or self.no_webpage is False else 2) | (0 if self.invert_media is None or self.invert_media is False else 65536) | (0 if self.message is None or self.message is False else 2048) | (0 if self.media is None or self.media is False else 16384) | (0 if self.reply_markup is None or self.reply_markup is False else 4) | (0 if self.entities is None or self.entities is False else 8)),
             self.id._bytes(),
             b'' if self.message is None or self.message is False else (self.serialize_bytes(self.message)),
             b'' if self.media is None or self.media is False else (self.media._bytes()),
@@ -989,6 +1247,7 @@ class EditInlineBotMessageRequest(TLRequest):
         flags = reader.read_int()
 
         _no_webpage = bool(flags & 2)
+        _invert_media = bool(flags & 65536)
         _id = reader.tgread_object()
         if flags & 2048:
             _message = reader.tgread_string()
@@ -1011,25 +1270,27 @@ class EditInlineBotMessageRequest(TLRequest):
 
         else:
             _entities = None
-        return cls(id=_id, no_webpage=_no_webpage, message=_message, media=_media, reply_markup=_reply_markup, entities=_entities)
+        return cls(id=_id, no_webpage=_no_webpage, invert_media=_invert_media, message=_message, media=_media, reply_markup=_reply_markup, entities=_entities)
 
 
 class EditMessageRequest(TLRequest):
-    CONSTRUCTOR_ID = 0x48f71778
+    CONSTRUCTOR_ID = 0xdfd14005
     SUBCLASS_OF_ID = 0x8af52aac
 
-    def __init__(self, peer: 'TypeInputPeer', id: int, no_webpage: Optional[bool]=None, message: Optional[str]=None, media: Optional['TypeInputMedia']=None, reply_markup: Optional['TypeReplyMarkup']=None, entities: Optional[List['TypeMessageEntity']]=None, schedule_date: Optional[datetime]=None):
+    def __init__(self, peer: 'TypeInputPeer', id: int, no_webpage: Optional[bool]=None, invert_media: Optional[bool]=None, message: Optional[str]=None, media: Optional['TypeInputMedia']=None, reply_markup: Optional['TypeReplyMarkup']=None, entities: Optional[List['TypeMessageEntity']]=None, schedule_date: Optional[datetime]=None, quick_reply_shortcut_id: Optional[int]=None):
         """
         :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
         """
         self.peer = peer
         self.id = id
         self.no_webpage = no_webpage
+        self.invert_media = invert_media
         self.message = message
         self.media = media
         self.reply_markup = reply_markup
         self.entities = entities
         self.schedule_date = schedule_date
+        self.quick_reply_shortcut_id = quick_reply_shortcut_id
 
     async def resolve(self, client, utils):
         self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
@@ -1042,17 +1303,19 @@ class EditMessageRequest(TLRequest):
             'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
             'id': self.id,
             'no_webpage': self.no_webpage,
+            'invert_media': self.invert_media,
             'message': self.message,
             'media': self.media.to_dict() if isinstance(self.media, TLObject) else self.media,
             'reply_markup': self.reply_markup.to_dict() if isinstance(self.reply_markup, TLObject) else self.reply_markup,
             'entities': [] if self.entities is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.entities],
-            'schedule_date': self.schedule_date
+            'schedule_date': self.schedule_date,
+            'quick_reply_shortcut_id': self.quick_reply_shortcut_id
         }
 
     def _bytes(self):
         return b''.join((
-            b'x\x17\xf7H',
-            struct.pack('<I', (0 if self.no_webpage is None or self.no_webpage is False else 2) | (0 if self.message is None or self.message is False else 2048) | (0 if self.media is None or self.media is False else 16384) | (0 if self.reply_markup is None or self.reply_markup is False else 4) | (0 if self.entities is None or self.entities is False else 8) | (0 if self.schedule_date is None or self.schedule_date is False else 32768)),
+            b'\x05@\xd1\xdf',
+            struct.pack('<I', (0 if self.no_webpage is None or self.no_webpage is False else 2) | (0 if self.invert_media is None or self.invert_media is False else 65536) | (0 if self.message is None or self.message is False else 2048) | (0 if self.media is None or self.media is False else 16384) | (0 if self.reply_markup is None or self.reply_markup is False else 4) | (0 if self.entities is None or self.entities is False else 8) | (0 if self.schedule_date is None or self.schedule_date is False else 32768) | (0 if self.quick_reply_shortcut_id is None or self.quick_reply_shortcut_id is False else 131072)),
             self.peer._bytes(),
             struct.pack('<i', self.id),
             b'' if self.message is None or self.message is False else (self.serialize_bytes(self.message)),
@@ -1060,6 +1323,7 @@ class EditMessageRequest(TLRequest):
             b'' if self.reply_markup is None or self.reply_markup is False else (self.reply_markup._bytes()),
             b'' if self.entities is None or self.entities is False else b''.join((b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.entities)),b''.join(x._bytes() for x in self.entities))),
             b'' if self.schedule_date is None or self.schedule_date is False else (self.serialize_datetime(self.schedule_date)),
+            b'' if self.quick_reply_shortcut_id is None or self.quick_reply_shortcut_id is False else (struct.pack('<i', self.quick_reply_shortcut_id)),
         ))
 
     @classmethod
@@ -1067,6 +1331,7 @@ class EditMessageRequest(TLRequest):
         flags = reader.read_int()
 
         _no_webpage = bool(flags & 2)
+        _invert_media = bool(flags & 65536)
         _peer = reader.tgread_object()
         _id = reader.read_int()
         if flags & 2048:
@@ -1094,14 +1359,50 @@ class EditMessageRequest(TLRequest):
             _schedule_date = reader.tgread_date()
         else:
             _schedule_date = None
-        return cls(peer=_peer, id=_id, no_webpage=_no_webpage, message=_message, media=_media, reply_markup=_reply_markup, entities=_entities, schedule_date=_schedule_date)
+        if flags & 131072:
+            _quick_reply_shortcut_id = reader.read_int()
+        else:
+            _quick_reply_shortcut_id = None
+        return cls(peer=_peer, id=_id, no_webpage=_no_webpage, invert_media=_invert_media, message=_message, media=_media, reply_markup=_reply_markup, entities=_entities, schedule_date=_schedule_date, quick_reply_shortcut_id=_quick_reply_shortcut_id)
+
+
+class EditQuickReplyShortcutRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x5c003cef
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, shortcut_id: int, shortcut: str):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.shortcut_id = shortcut_id
+        self.shortcut = shortcut
+
+    def to_dict(self):
+        return {
+            '_': 'EditQuickReplyShortcutRequest',
+            'shortcut_id': self.shortcut_id,
+            'shortcut': self.shortcut
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xef<\x00\\',
+            struct.pack('<i', self.shortcut_id),
+            self.serialize_bytes(self.shortcut),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _shortcut_id = reader.read_int()
+        _shortcut = reader.tgread_string()
+        return cls(shortcut_id=_shortcut_id, shortcut=_shortcut)
 
 
 class ExportChatInviteRequest(TLRequest):
-    CONSTRUCTOR_ID = 0xa02ce5d5
+    CONSTRUCTOR_ID = 0xa455de90
     SUBCLASS_OF_ID = 0xb4748a58
 
-    def __init__(self, peer: 'TypeInputPeer', legacy_revoke_permanent: Optional[bool]=None, request_needed: Optional[bool]=None, expire_date: Optional[datetime]=None, usage_limit: Optional[int]=None, title: Optional[str]=None):
+    def __init__(self, peer: 'TypeInputPeer', legacy_revoke_permanent: Optional[bool]=None, request_needed: Optional[bool]=None, expire_date: Optional[datetime]=None, usage_limit: Optional[int]=None, title: Optional[str]=None, subscription_pricing: Optional['TypeStarsSubscriptionPricing']=None):
         """
         :returns ExportedChatInvite: Instance of either ChatInviteExported, ChatInvitePublicJoinRequests.
         """
@@ -1111,6 +1412,7 @@ class ExportChatInviteRequest(TLRequest):
         self.expire_date = expire_date
         self.usage_limit = usage_limit
         self.title = title
+        self.subscription_pricing = subscription_pricing
 
     async def resolve(self, client, utils):
         self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
@@ -1123,17 +1425,19 @@ class ExportChatInviteRequest(TLRequest):
             'request_needed': self.request_needed,
             'expire_date': self.expire_date,
             'usage_limit': self.usage_limit,
-            'title': self.title
+            'title': self.title,
+            'subscription_pricing': self.subscription_pricing.to_dict() if isinstance(self.subscription_pricing, TLObject) else self.subscription_pricing
         }
 
     def _bytes(self):
         return b''.join((
-            b'\xd5\xe5,\xa0',
-            struct.pack('<I', (0 if self.legacy_revoke_permanent is None or self.legacy_revoke_permanent is False else 4) | (0 if self.request_needed is None or self.request_needed is False else 8) | (0 if self.expire_date is None or self.expire_date is False else 1) | (0 if self.usage_limit is None or self.usage_limit is False else 2) | (0 if self.title is None or self.title is False else 16)),
+            b'\x90\xdeU\xa4',
+            struct.pack('<I', (0 if self.legacy_revoke_permanent is None or self.legacy_revoke_permanent is False else 4) | (0 if self.request_needed is None or self.request_needed is False else 8) | (0 if self.expire_date is None or self.expire_date is False else 1) | (0 if self.usage_limit is None or self.usage_limit is False else 2) | (0 if self.title is None or self.title is False else 16) | (0 if self.subscription_pricing is None or self.subscription_pricing is False else 32)),
             self.peer._bytes(),
             b'' if self.expire_date is None or self.expire_date is False else (self.serialize_datetime(self.expire_date)),
             b'' if self.usage_limit is None or self.usage_limit is False else (struct.pack('<i', self.usage_limit)),
             b'' if self.title is None or self.title is False else (self.serialize_bytes(self.title)),
+            b'' if self.subscription_pricing is None or self.subscription_pricing is False else (self.subscription_pricing._bytes()),
         ))
 
     @classmethod
@@ -1155,7 +1459,11 @@ class ExportChatInviteRequest(TLRequest):
             _title = reader.tgread_string()
         else:
             _title = None
-        return cls(peer=_peer, legacy_revoke_permanent=_legacy_revoke_permanent, request_needed=_request_needed, expire_date=_expire_date, usage_limit=_usage_limit, title=_title)
+        if flags & 32:
+            _subscription_pricing = reader.tgread_object()
+        else:
+            _subscription_pricing = None
+        return cls(peer=_peer, legacy_revoke_permanent=_legacy_revoke_permanent, request_needed=_request_needed, expire_date=_expire_date, usage_limit=_usage_limit, title=_title, subscription_pricing=_subscription_pricing)
 
 
 class FaveStickerRequest(TLRequest):
@@ -1194,10 +1502,10 @@ class FaveStickerRequest(TLRequest):
 
 
 class ForwardMessagesRequest(TLRequest):
-    CONSTRUCTOR_ID = 0xc661bbc4
+    CONSTRUCTOR_ID = 0xbb9fa475
     SUBCLASS_OF_ID = 0x8af52aac
 
-    def __init__(self, from_peer: 'TypeInputPeer', id: List[int], to_peer: 'TypeInputPeer', silent: Optional[bool]=None, background: Optional[bool]=None, with_my_score: Optional[bool]=None, drop_author: Optional[bool]=None, drop_media_captions: Optional[bool]=None, noforwards: Optional[bool]=None, random_id: List[int]=None, top_msg_id: Optional[int]=None, schedule_date: Optional[datetime]=None, send_as: Optional['TypeInputPeer']=None):
+    def __init__(self, from_peer: 'TypeInputPeer', id: List[int], to_peer: 'TypeInputPeer', silent: Optional[bool]=None, background: Optional[bool]=None, with_my_score: Optional[bool]=None, drop_author: Optional[bool]=None, drop_media_captions: Optional[bool]=None, noforwards: Optional[bool]=None, allow_paid_floodskip: Optional[bool]=None, random_id: List[int]=None, top_msg_id: Optional[int]=None, schedule_date: Optional[datetime]=None, send_as: Optional['TypeInputPeer']=None, quick_reply_shortcut: Optional['TypeInputQuickReplyShortcut']=None, video_timestamp: Optional[int]=None, allow_paid_stars: Optional[int]=None):
         """
         :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
         """
@@ -1210,10 +1518,14 @@ class ForwardMessagesRequest(TLRequest):
         self.drop_author = drop_author
         self.drop_media_captions = drop_media_captions
         self.noforwards = noforwards
+        self.allow_paid_floodskip = allow_paid_floodskip
         self.random_id = random_id if random_id is not None else [int.from_bytes(os.urandom(8), 'big', signed=True) for _ in range(len(id))]
         self.top_msg_id = top_msg_id
         self.schedule_date = schedule_date
         self.send_as = send_as
+        self.quick_reply_shortcut = quick_reply_shortcut
+        self.video_timestamp = video_timestamp
+        self.allow_paid_stars = allow_paid_stars
 
     async def resolve(self, client, utils):
         self.from_peer = utils.get_input_peer(await client.get_input_entity(self.from_peer))
@@ -1233,16 +1545,20 @@ class ForwardMessagesRequest(TLRequest):
             'drop_author': self.drop_author,
             'drop_media_captions': self.drop_media_captions,
             'noforwards': self.noforwards,
+            'allow_paid_floodskip': self.allow_paid_floodskip,
             'random_id': [] if self.random_id is None else self.random_id[:],
             'top_msg_id': self.top_msg_id,
             'schedule_date': self.schedule_date,
-            'send_as': self.send_as.to_dict() if isinstance(self.send_as, TLObject) else self.send_as
+            'send_as': self.send_as.to_dict() if isinstance(self.send_as, TLObject) else self.send_as,
+            'quick_reply_shortcut': self.quick_reply_shortcut.to_dict() if isinstance(self.quick_reply_shortcut, TLObject) else self.quick_reply_shortcut,
+            'video_timestamp': self.video_timestamp,
+            'allow_paid_stars': self.allow_paid_stars
         }
 
     def _bytes(self):
         return b''.join((
-            b'\xc4\xbba\xc6',
-            struct.pack('<I', (0 if self.silent is None or self.silent is False else 32) | (0 if self.background is None or self.background is False else 64) | (0 if self.with_my_score is None or self.with_my_score is False else 256) | (0 if self.drop_author is None or self.drop_author is False else 2048) | (0 if self.drop_media_captions is None or self.drop_media_captions is False else 4096) | (0 if self.noforwards is None or self.noforwards is False else 16384) | (0 if self.top_msg_id is None or self.top_msg_id is False else 512) | (0 if self.schedule_date is None or self.schedule_date is False else 1024) | (0 if self.send_as is None or self.send_as is False else 8192)),
+            b'u\xa4\x9f\xbb',
+            struct.pack('<I', (0 if self.silent is None or self.silent is False else 32) | (0 if self.background is None or self.background is False else 64) | (0 if self.with_my_score is None or self.with_my_score is False else 256) | (0 if self.drop_author is None or self.drop_author is False else 2048) | (0 if self.drop_media_captions is None or self.drop_media_captions is False else 4096) | (0 if self.noforwards is None or self.noforwards is False else 16384) | (0 if self.allow_paid_floodskip is None or self.allow_paid_floodskip is False else 524288) | (0 if self.top_msg_id is None or self.top_msg_id is False else 512) | (0 if self.schedule_date is None or self.schedule_date is False else 1024) | (0 if self.send_as is None or self.send_as is False else 8192) | (0 if self.quick_reply_shortcut is None or self.quick_reply_shortcut is False else 131072) | (0 if self.video_timestamp is None or self.video_timestamp is False else 1048576) | (0 if self.allow_paid_stars is None or self.allow_paid_stars is False else 2097152)),
             self.from_peer._bytes(),
             b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.id)),b''.join(struct.pack('<i', x) for x in self.id),
             b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.random_id)),b''.join(struct.pack('<q', x) for x in self.random_id),
@@ -1250,6 +1566,9 @@ class ForwardMessagesRequest(TLRequest):
             b'' if self.top_msg_id is None or self.top_msg_id is False else (struct.pack('<i', self.top_msg_id)),
             b'' if self.schedule_date is None or self.schedule_date is False else (self.serialize_datetime(self.schedule_date)),
             b'' if self.send_as is None or self.send_as is False else (self.send_as._bytes()),
+            b'' if self.quick_reply_shortcut is None or self.quick_reply_shortcut is False else (self.quick_reply_shortcut._bytes()),
+            b'' if self.video_timestamp is None or self.video_timestamp is False else (struct.pack('<i', self.video_timestamp)),
+            b'' if self.allow_paid_stars is None or self.allow_paid_stars is False else (struct.pack('<q', self.allow_paid_stars)),
         ))
 
     @classmethod
@@ -1262,6 +1581,7 @@ class ForwardMessagesRequest(TLRequest):
         _drop_author = bool(flags & 2048)
         _drop_media_captions = bool(flags & 4096)
         _noforwards = bool(flags & 16384)
+        _allow_paid_floodskip = bool(flags & 524288)
         _from_peer = reader.tgread_object()
         reader.read_int()
         _id = []
@@ -1288,7 +1608,19 @@ class ForwardMessagesRequest(TLRequest):
             _send_as = reader.tgread_object()
         else:
             _send_as = None
-        return cls(from_peer=_from_peer, id=_id, to_peer=_to_peer, silent=_silent, background=_background, with_my_score=_with_my_score, drop_author=_drop_author, drop_media_captions=_drop_media_captions, noforwards=_noforwards, random_id=_random_id, top_msg_id=_top_msg_id, schedule_date=_schedule_date, send_as=_send_as)
+        if flags & 131072:
+            _quick_reply_shortcut = reader.tgread_object()
+        else:
+            _quick_reply_shortcut = None
+        if flags & 1048576:
+            _video_timestamp = reader.read_int()
+        else:
+            _video_timestamp = None
+        if flags & 2097152:
+            _allow_paid_stars = reader.read_long()
+        else:
+            _allow_paid_stars = None
+        return cls(from_peer=_from_peer, id=_id, to_peer=_to_peer, silent=_silent, background=_background, with_my_score=_with_my_score, drop_author=_drop_author, drop_media_captions=_drop_media_captions, noforwards=_noforwards, allow_paid_floodskip=_allow_paid_floodskip, random_id=_random_id, top_msg_id=_top_msg_id, schedule_date=_schedule_date, send_as=_send_as, quick_reply_shortcut=_quick_reply_shortcut, video_timestamp=_video_timestamp, allow_paid_stars=_allow_paid_stars)
 
 
 class GetAdminsWithInvitesRequest(TLRequest):
@@ -1497,6 +1829,34 @@ class GetAttachedStickersRequest(TLRequest):
         return cls(media=_media)
 
 
+class GetAvailableEffectsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xdea20a39
+    SUBCLASS_OF_ID = 0x4470d5bd
+
+    def __init__(self, hash: int):
+        """
+        :returns messages.AvailableEffects: Instance of either AvailableEffectsNotModified, AvailableEffects.
+        """
+        self.hash = hash
+
+    def to_dict(self):
+        return {
+            '_': 'GetAvailableEffectsRequest',
+            'hash': self.hash
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'9\n\xa2\xde',
+            struct.pack('<i', self.hash),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _hash = reader.read_int()
+        return cls(hash=_hash)
+
+
 class GetAvailableReactionsRequest(TLRequest):
     CONSTRUCTOR_ID = 0x18dea0ac
     SUBCLASS_OF_ID = 0xe426ad82
@@ -1616,7 +1976,7 @@ class GetChatInviteImportersRequest(TLRequest):
     CONSTRUCTOR_ID = 0xdf04dd4e
     SUBCLASS_OF_ID = 0xd9bc8aa6
 
-    def __init__(self, peer: 'TypeInputPeer', offset_date: Optional[datetime], offset_user: 'TypeInputUser', limit: int, requested: Optional[bool]=None, link: Optional[str]=None, q: Optional[str]=None):
+    def __init__(self, peer: 'TypeInputPeer', offset_date: Optional[datetime], offset_user: 'TypeInputUser', limit: int, requested: Optional[bool]=None, subscription_expired: Optional[bool]=None, link: Optional[str]=None, q: Optional[str]=None):
         """
         :returns messages.ChatInviteImporters: Instance of ChatInviteImporters.
         """
@@ -1625,6 +1985,7 @@ class GetChatInviteImportersRequest(TLRequest):
         self.offset_user = offset_user
         self.limit = limit
         self.requested = requested
+        self.subscription_expired = subscription_expired
         self.link = link
         self.q = q
 
@@ -1640,6 +2001,7 @@ class GetChatInviteImportersRequest(TLRequest):
             'offset_user': self.offset_user.to_dict() if isinstance(self.offset_user, TLObject) else self.offset_user,
             'limit': self.limit,
             'requested': self.requested,
+            'subscription_expired': self.subscription_expired,
             'link': self.link,
             'q': self.q
         }
@@ -1647,7 +2009,7 @@ class GetChatInviteImportersRequest(TLRequest):
     def _bytes(self):
         return b''.join((
             b'N\xdd\x04\xdf',
-            struct.pack('<I', (0 if self.requested is None or self.requested is False else 1) | (0 if self.link is None or self.link is False else 2) | (0 if self.q is None or self.q is False else 4)),
+            struct.pack('<I', (0 if self.requested is None or self.requested is False else 1) | (0 if self.subscription_expired is None or self.subscription_expired is False else 8) | (0 if self.link is None or self.link is False else 2) | (0 if self.q is None or self.q is False else 4)),
             self.peer._bytes(),
             b'' if self.link is None or self.link is False else (self.serialize_bytes(self.link)),
             b'' if self.q is None or self.q is False else (self.serialize_bytes(self.q)),
@@ -1661,6 +2023,7 @@ class GetChatInviteImportersRequest(TLRequest):
         flags = reader.read_int()
 
         _requested = bool(flags & 1)
+        _subscription_expired = bool(flags & 8)
         _peer = reader.tgread_object()
         if flags & 2:
             _link = reader.tgread_string()
@@ -1673,7 +2036,7 @@ class GetChatInviteImportersRequest(TLRequest):
         _offset_date = reader.tgread_date()
         _offset_user = reader.tgread_object()
         _limit = reader.read_int()
-        return cls(peer=_peer, offset_date=_offset_date, offset_user=_offset_user, limit=_limit, requested=_requested, link=_link, q=_q)
+        return cls(peer=_peer, offset_date=_offset_date, offset_user=_offset_user, limit=_limit, requested=_requested, subscription_expired=_subscription_expired, link=_link, q=_q)
 
 
 class GetChatsRequest(TLRequest):
@@ -1800,6 +2163,34 @@ class GetDefaultHistoryTTLRequest(TLRequest):
         return cls()
 
 
+class GetDefaultTagReactionsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xbdf93428
+    SUBCLASS_OF_ID = 0xadc38324
+
+    def __init__(self, hash: int):
+        """
+        :returns messages.Reactions: Instance of either ReactionsNotModified, Reactions.
+        """
+        self.hash = hash
+
+    def to_dict(self):
+        return {
+            '_': 'GetDefaultTagReactionsRequest',
+            'hash': self.hash
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'(4\xf9\xbd',
+            struct.pack('<q', self.hash),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _hash = reader.read_long()
+        return cls(hash=_hash)
+
+
 class GetDhConfigRequest(TLRequest):
     CONSTRUCTOR_ID = 0x26cf8950
     SUBCLASS_OF_ID = 0xe488ed8b
@@ -1833,8 +2224,8 @@ class GetDhConfigRequest(TLRequest):
 
 
 class GetDialogFiltersRequest(TLRequest):
-    CONSTRUCTOR_ID = 0xf19ed96d
-    SUBCLASS_OF_ID = 0x601ce94d
+    CONSTRUCTOR_ID = 0xefd48c89
+    SUBCLASS_OF_ID = 0xa5fff1b7
 
     def to_dict(self):
         return {
@@ -1843,7 +2234,7 @@ class GetDialogFiltersRequest(TLRequest):
 
     def _bytes(self):
         return b''.join((
-            b'm\xd9\x9e\xf1',
+            b'\x89\x8c\xd4\xef',
         ))
 
     @classmethod
@@ -2178,6 +2569,34 @@ class GetEmojiStatusGroupsRequest(TLRequest):
         return cls(hash=_hash)
 
 
+class GetEmojiStickerGroupsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x1dd840f5
+    SUBCLASS_OF_ID = 0x7eca55d9
+
+    def __init__(self, hash: int):
+        """
+        :returns messages.EmojiGroups: Instance of either EmojiGroupsNotModified, EmojiGroups.
+        """
+        self.hash = hash
+
+    def to_dict(self):
+        return {
+            '_': 'GetEmojiStickerGroupsRequest',
+            'hash': self.hash
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xf5@\xd8\x1d',
+            struct.pack('<i', self.hash),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _hash = reader.read_int()
+        return cls(hash=_hash)
+
+
 class GetEmojiStickersRequest(TLRequest):
     CONSTRUCTOR_ID = 0xfbfca18f
     SUBCLASS_OF_ID = 0x45834829
@@ -2368,6 +2787,46 @@ class GetExtendedMediaRequest(TLRequest):
             _id.append(_x)
 
         return cls(peer=_peer, id=_id)
+
+
+class GetFactCheckRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xb9cdc5ee
+    SUBCLASS_OF_ID = 0xbba61813
+
+    def __init__(self, peer: 'TypeInputPeer', msg_id: List[int]):
+        """
+        :returns Vector<FactCheck>: This type has no constructors.
+        """
+        self.peer = peer
+        self.msg_id = msg_id
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetFactCheckRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'msg_id': [] if self.msg_id is None else self.msg_id[:]
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xee\xc5\xcd\xb9',
+            self.peer._bytes(),
+            b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.msg_id)),b''.join(struct.pack('<i', x) for x in self.msg_id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        reader.read_int()
+        _msg_id = []
+        for _ in range(reader.read_int()):
+            _x = reader.read_int()
+            _msg_id.append(_x)
+
+        return cls(peer=_peer, msg_id=_msg_id)
 
 
 class GetFavedStickersRequest(TLRequest):
@@ -2948,6 +3407,38 @@ class GetMessagesViewsRequest(TLRequest):
         return cls(peer=_peer, id=_id, increment=_increment)
 
 
+class GetMyStickersRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xd0b5e1fc
+    SUBCLASS_OF_ID = 0xb1b4350a
+
+    def __init__(self, offset_id: int, limit: int):
+        """
+        :returns messages.MyStickers: Instance of MyStickers.
+        """
+        self.offset_id = offset_id
+        self.limit = limit
+
+    def to_dict(self):
+        return {
+            '_': 'GetMyStickersRequest',
+            'offset_id': self.offset_id,
+            'limit': self.limit
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xfc\xe1\xb5\xd0',
+            struct.pack('<q', self.offset_id),
+            struct.pack('<i', self.limit),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _offset_id = reader.read_long()
+        _limit = reader.read_int()
+        return cls(offset_id=_offset_id, limit=_limit)
+
+
 class GetOldFeaturedStickersRequest(TLRequest):
     CONSTRUCTOR_ID = 0x7ed094a1
     SUBCLASS_OF_ID = 0x2614b722
@@ -3013,6 +3504,60 @@ class GetOnlinesRequest(TLRequest):
     def from_reader(cls, reader):
         _peer = reader.tgread_object()
         return cls(peer=_peer)
+
+
+class GetOutboxReadDateRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x8c4bfe5d
+    SUBCLASS_OF_ID = 0x6f5183c6
+
+    def __init__(self, peer: 'TypeInputPeer', msg_id: int):
+        """
+        :returns OutboxReadDate: Instance of OutboxReadDate.
+        """
+        self.peer = peer
+        self.msg_id = msg_id
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetOutboxReadDateRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'msg_id': self.msg_id
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b']\xfeK\x8c',
+            self.peer._bytes(),
+            struct.pack('<i', self.msg_id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        _msg_id = reader.read_int()
+        return cls(peer=_peer, msg_id=_msg_id)
+
+
+class GetPaidReactionPrivacyRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x472455aa
+    SUBCLASS_OF_ID = 0x8af52aac
+
+    def to_dict(self):
+        return {
+            '_': 'GetPaidReactionPrivacyRequest'
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xaaU$G',
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        return cls()
 
 
 class GetPeerDialogsRequest(TLRequest):
@@ -3114,6 +3659,25 @@ class GetPinnedDialogsRequest(TLRequest):
         return cls(folder_id=_folder_id)
 
 
+class GetPinnedSavedDialogsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xd63d94e0
+    SUBCLASS_OF_ID = 0x614bb87e
+
+    def to_dict(self):
+        return {
+            '_': 'GetPinnedSavedDialogsRequest'
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xe0\x94=\xd6',
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        return cls()
+
+
 class GetPollResultsRequest(TLRequest):
     CONSTRUCTOR_ID = 0x73bb643b
     SUBCLASS_OF_ID = 0x8af52aac
@@ -3203,6 +3767,116 @@ class GetPollVotesRequest(TLRequest):
             _offset = None
         _limit = reader.read_int()
         return cls(peer=_peer, id=_id, limit=_limit, option=_option, offset=_offset)
+
+
+class GetPreparedInlineMessageRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x857ebdb8
+    SUBCLASS_OF_ID = 0x490ddf4d
+
+    def __init__(self, bot: 'TypeInputUser', id: str):
+        """
+        :returns messages.PreparedInlineMessage: Instance of PreparedInlineMessage.
+        """
+        self.bot = bot
+        self.id = id
+
+    async def resolve(self, client, utils):
+        self.bot = utils.get_input_user(await client.get_input_entity(self.bot))
+
+    def to_dict(self):
+        return {
+            '_': 'GetPreparedInlineMessageRequest',
+            'bot': self.bot.to_dict() if isinstance(self.bot, TLObject) else self.bot,
+            'id': self.id
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xb8\xbd~\x85',
+            self.bot._bytes(),
+            self.serialize_bytes(self.id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _bot = reader.tgread_object()
+        _id = reader.tgread_string()
+        return cls(bot=_bot, id=_id)
+
+
+class GetQuickRepliesRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xd483f2a8
+    SUBCLASS_OF_ID = 0xf737e966
+
+    def __init__(self, hash: int):
+        """
+        :returns messages.QuickReplies: Instance of either QuickReplies, QuickRepliesNotModified.
+        """
+        self.hash = hash
+
+    def to_dict(self):
+        return {
+            '_': 'GetQuickRepliesRequest',
+            'hash': self.hash
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xa8\xf2\x83\xd4',
+            struct.pack('<q', self.hash),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _hash = reader.read_long()
+        return cls(hash=_hash)
+
+
+class GetQuickReplyMessagesRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x94a495c3
+    SUBCLASS_OF_ID = 0xd4b40b5e
+
+    def __init__(self, shortcut_id: int, hash: int, id: Optional[List[int]]=None):
+        """
+        :returns messages.Messages: Instance of either Messages, MessagesSlice, ChannelMessages, MessagesNotModified.
+        """
+        self.shortcut_id = shortcut_id
+        self.hash = hash
+        self.id = id
+
+    def to_dict(self):
+        return {
+            '_': 'GetQuickReplyMessagesRequest',
+            'shortcut_id': self.shortcut_id,
+            'hash': self.hash,
+            'id': [] if self.id is None else self.id[:]
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xc3\x95\xa4\x94',
+            struct.pack('<I', (0 if self.id is None or self.id is False else 1)),
+            struct.pack('<i', self.shortcut_id),
+            b'' if self.id is None or self.id is False else b''.join((b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.id)),b''.join(struct.pack('<i', x) for x in self.id))),
+            struct.pack('<q', self.hash),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _shortcut_id = reader.read_int()
+        if flags & 1:
+            reader.read_int()
+            _id = []
+            for _ in range(reader.read_int()):
+                _x = reader.read_int()
+                _id.append(_x)
+
+        else:
+            _id = None
+        _hash = reader.read_long()
+        return cls(shortcut_id=_shortcut_id, hash=_hash, id=_id)
 
 
 class GetRecentLocationsRequest(TLRequest):
@@ -3373,6 +4047,59 @@ class GetRepliesRequest(TLRequest):
         return cls(peer=_peer, msg_id=_msg_id, offset_id=_offset_id, offset_date=_offset_date, add_offset=_add_offset, limit=_limit, max_id=_max_id, min_id=_min_id, hash=_hash)
 
 
+class GetSavedDialogsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x5381d21a
+    SUBCLASS_OF_ID = 0x614bb87e
+
+    def __init__(self, offset_date: Optional[datetime], offset_id: int, offset_peer: 'TypeInputPeer', limit: int, hash: int, exclude_pinned: Optional[bool]=None):
+        """
+        :returns messages.SavedDialogs: Instance of either SavedDialogs, SavedDialogsSlice, SavedDialogsNotModified.
+        """
+        self.offset_date = offset_date
+        self.offset_id = offset_id
+        self.offset_peer = offset_peer
+        self.limit = limit
+        self.hash = hash
+        self.exclude_pinned = exclude_pinned
+
+    async def resolve(self, client, utils):
+        self.offset_peer = utils.get_input_peer(await client.get_input_entity(self.offset_peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetSavedDialogsRequest',
+            'offset_date': self.offset_date,
+            'offset_id': self.offset_id,
+            'offset_peer': self.offset_peer.to_dict() if isinstance(self.offset_peer, TLObject) else self.offset_peer,
+            'limit': self.limit,
+            'hash': self.hash,
+            'exclude_pinned': self.exclude_pinned
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\x1a\xd2\x81S',
+            struct.pack('<I', (0 if self.exclude_pinned is None or self.exclude_pinned is False else 1)),
+            self.serialize_datetime(self.offset_date),
+            struct.pack('<i', self.offset_id),
+            self.offset_peer._bytes(),
+            struct.pack('<i', self.limit),
+            struct.pack('<q', self.hash),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _exclude_pinned = bool(flags & 1)
+        _offset_date = reader.tgread_date()
+        _offset_id = reader.read_int()
+        _offset_peer = reader.tgread_object()
+        _limit = reader.read_int()
+        _hash = reader.read_long()
+        return cls(offset_date=_offset_date, offset_id=_offset_id, offset_peer=_offset_peer, limit=_limit, hash=_hash, exclude_pinned=_exclude_pinned)
+
+
 class GetSavedGifsRequest(TLRequest):
     CONSTRUCTOR_ID = 0x5cf09635
     SUBCLASS_OF_ID = 0xa68b61f5
@@ -3399,6 +4126,107 @@ class GetSavedGifsRequest(TLRequest):
     def from_reader(cls, reader):
         _hash = reader.read_long()
         return cls(hash=_hash)
+
+
+class GetSavedHistoryRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x3d9a414d
+    SUBCLASS_OF_ID = 0xd4b40b5e
+
+    def __init__(self, peer: 'TypeInputPeer', offset_id: int, offset_date: Optional[datetime], add_offset: int, limit: int, max_id: int, min_id: int, hash: int):
+        """
+        :returns messages.Messages: Instance of either Messages, MessagesSlice, ChannelMessages, MessagesNotModified.
+        """
+        self.peer = peer
+        self.offset_id = offset_id
+        self.offset_date = offset_date
+        self.add_offset = add_offset
+        self.limit = limit
+        self.max_id = max_id
+        self.min_id = min_id
+        self.hash = hash
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetSavedHistoryRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'offset_id': self.offset_id,
+            'offset_date': self.offset_date,
+            'add_offset': self.add_offset,
+            'limit': self.limit,
+            'max_id': self.max_id,
+            'min_id': self.min_id,
+            'hash': self.hash
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'MA\x9a=',
+            self.peer._bytes(),
+            struct.pack('<i', self.offset_id),
+            self.serialize_datetime(self.offset_date),
+            struct.pack('<i', self.add_offset),
+            struct.pack('<i', self.limit),
+            struct.pack('<i', self.max_id),
+            struct.pack('<i', self.min_id),
+            struct.pack('<q', self.hash),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        _offset_id = reader.read_int()
+        _offset_date = reader.tgread_date()
+        _add_offset = reader.read_int()
+        _limit = reader.read_int()
+        _max_id = reader.read_int()
+        _min_id = reader.read_int()
+        _hash = reader.read_long()
+        return cls(peer=_peer, offset_id=_offset_id, offset_date=_offset_date, add_offset=_add_offset, limit=_limit, max_id=_max_id, min_id=_min_id, hash=_hash)
+
+
+class GetSavedReactionTagsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x3637e05b
+    SUBCLASS_OF_ID = 0xa39b5be3
+
+    def __init__(self, hash: int, peer: Optional['TypeInputPeer']=None):
+        """
+        :returns messages.SavedReactionTags: Instance of either SavedReactionTagsNotModified, SavedReactionTags.
+        """
+        self.hash = hash
+        self.peer = peer
+
+    async def resolve(self, client, utils):
+        if self.peer:
+            self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetSavedReactionTagsRequest',
+            'hash': self.hash,
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'[\xe076',
+            struct.pack('<I', (0 if self.peer is None or self.peer is False else 1)),
+            b'' if self.peer is None or self.peer is False else (self.peer._bytes()),
+            struct.pack('<q', self.hash),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        if flags & 1:
+            _peer = reader.tgread_object()
+        else:
+            _peer = None
+        _hash = reader.read_long()
+        return cls(hash=_hash, peer=_peer)
 
 
 class GetScheduledHistoryRequest(TLRequest):
@@ -3477,33 +4305,38 @@ class GetScheduledMessagesRequest(TLRequest):
 
 
 class GetSearchCountersRequest(TLRequest):
-    CONSTRUCTOR_ID = 0xae7cc1
+    CONSTRUCTOR_ID = 0x1bbcf300
     SUBCLASS_OF_ID = 0x6bde3c6e
 
-    def __init__(self, peer: 'TypeInputPeer', filters: List['TypeMessagesFilter'], top_msg_id: Optional[int]=None):
+    def __init__(self, peer: 'TypeInputPeer', filters: List['TypeMessagesFilter'], saved_peer_id: Optional['TypeInputPeer']=None, top_msg_id: Optional[int]=None):
         """
         :returns Vector<messages.SearchCounter>: This type has no constructors.
         """
         self.peer = peer
         self.filters = filters
+        self.saved_peer_id = saved_peer_id
         self.top_msg_id = top_msg_id
 
     async def resolve(self, client, utils):
         self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+        if self.saved_peer_id:
+            self.saved_peer_id = utils.get_input_peer(await client.get_input_entity(self.saved_peer_id))
 
     def to_dict(self):
         return {
             '_': 'GetSearchCountersRequest',
             'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
             'filters': [] if self.filters is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.filters],
+            'saved_peer_id': self.saved_peer_id.to_dict() if isinstance(self.saved_peer_id, TLObject) else self.saved_peer_id,
             'top_msg_id': self.top_msg_id
         }
 
     def _bytes(self):
         return b''.join((
-            b'\xc1|\xae\x00',
-            struct.pack('<I', (0 if self.top_msg_id is None or self.top_msg_id is False else 1)),
+            b'\x00\xf3\xbc\x1b',
+            struct.pack('<I', (0 if self.saved_peer_id is None or self.saved_peer_id is False else 4) | (0 if self.top_msg_id is None or self.top_msg_id is False else 1)),
             self.peer._bytes(),
+            b'' if self.saved_peer_id is None or self.saved_peer_id is False else (self.saved_peer_id._bytes()),
             b'' if self.top_msg_id is None or self.top_msg_id is False else (struct.pack('<i', self.top_msg_id)),
             b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.filters)),b''.join(x._bytes() for x in self.filters),
         ))
@@ -3513,6 +4346,10 @@ class GetSearchCountersRequest(TLRequest):
         flags = reader.read_int()
 
         _peer = reader.tgread_object()
+        if flags & 4:
+            _saved_peer_id = reader.tgread_object()
+        else:
+            _saved_peer_id = None
         if flags & 1:
             _top_msg_id = reader.read_int()
         else:
@@ -3523,14 +4360,14 @@ class GetSearchCountersRequest(TLRequest):
             _x = reader.tgread_object()
             _filters.append(_x)
 
-        return cls(peer=_peer, filters=_filters, top_msg_id=_top_msg_id)
+        return cls(peer=_peer, filters=_filters, saved_peer_id=_saved_peer_id, top_msg_id=_top_msg_id)
 
 
 class GetSearchResultsCalendarRequest(TLRequest):
-    CONSTRUCTOR_ID = 0x49f0bde9
+    CONSTRUCTOR_ID = 0x6aa3f6bd
     SUBCLASS_OF_ID = 0x92c5640f
 
-    def __init__(self, peer: 'TypeInputPeer', filter: 'TypeMessagesFilter', offset_id: int, offset_date: Optional[datetime]):
+    def __init__(self, peer: 'TypeInputPeer', filter: 'TypeMessagesFilter', offset_id: int, offset_date: Optional[datetime], saved_peer_id: Optional['TypeInputPeer']=None):
         """
         :returns messages.SearchResultsCalendar: Instance of SearchResultsCalendar.
         """
@@ -3538,9 +4375,12 @@ class GetSearchResultsCalendarRequest(TLRequest):
         self.filter = filter
         self.offset_id = offset_id
         self.offset_date = offset_date
+        self.saved_peer_id = saved_peer_id
 
     async def resolve(self, client, utils):
         self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+        if self.saved_peer_id:
+            self.saved_peer_id = utils.get_input_peer(await client.get_input_entity(self.saved_peer_id))
 
     def to_dict(self):
         return {
@@ -3548,13 +4388,16 @@ class GetSearchResultsCalendarRequest(TLRequest):
             'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
             'filter': self.filter.to_dict() if isinstance(self.filter, TLObject) else self.filter,
             'offset_id': self.offset_id,
-            'offset_date': self.offset_date
+            'offset_date': self.offset_date,
+            'saved_peer_id': self.saved_peer_id.to_dict() if isinstance(self.saved_peer_id, TLObject) else self.saved_peer_id
         }
 
     def _bytes(self):
         return b''.join((
-            b'\xe9\xbd\xf0I',
+            b'\xbd\xf6\xa3j',
+            struct.pack('<I', (0 if self.saved_peer_id is None or self.saved_peer_id is False else 4)),
             self.peer._bytes(),
+            b'' if self.saved_peer_id is None or self.saved_peer_id is False else (self.saved_peer_id._bytes()),
             self.filter._bytes(),
             struct.pack('<i', self.offset_id),
             self.serialize_datetime(self.offset_date),
@@ -3562,18 +4405,24 @@ class GetSearchResultsCalendarRequest(TLRequest):
 
     @classmethod
     def from_reader(cls, reader):
+        flags = reader.read_int()
+
         _peer = reader.tgread_object()
+        if flags & 4:
+            _saved_peer_id = reader.tgread_object()
+        else:
+            _saved_peer_id = None
         _filter = reader.tgread_object()
         _offset_id = reader.read_int()
         _offset_date = reader.tgread_date()
-        return cls(peer=_peer, filter=_filter, offset_id=_offset_id, offset_date=_offset_date)
+        return cls(peer=_peer, filter=_filter, offset_id=_offset_id, offset_date=_offset_date, saved_peer_id=_saved_peer_id)
 
 
 class GetSearchResultsPositionsRequest(TLRequest):
-    CONSTRUCTOR_ID = 0x6e9583a3
+    CONSTRUCTOR_ID = 0x9c7f2f10
     SUBCLASS_OF_ID = 0xd963708d
 
-    def __init__(self, peer: 'TypeInputPeer', filter: 'TypeMessagesFilter', offset_id: int, limit: int):
+    def __init__(self, peer: 'TypeInputPeer', filter: 'TypeMessagesFilter', offset_id: int, limit: int, saved_peer_id: Optional['TypeInputPeer']=None):
         """
         :returns messages.SearchResultsPositions: Instance of SearchResultsPositions.
         """
@@ -3581,9 +4430,12 @@ class GetSearchResultsPositionsRequest(TLRequest):
         self.filter = filter
         self.offset_id = offset_id
         self.limit = limit
+        self.saved_peer_id = saved_peer_id
 
     async def resolve(self, client, utils):
         self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+        if self.saved_peer_id:
+            self.saved_peer_id = utils.get_input_peer(await client.get_input_entity(self.saved_peer_id))
 
     def to_dict(self):
         return {
@@ -3591,13 +4443,16 @@ class GetSearchResultsPositionsRequest(TLRequest):
             'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
             'filter': self.filter.to_dict() if isinstance(self.filter, TLObject) else self.filter,
             'offset_id': self.offset_id,
-            'limit': self.limit
+            'limit': self.limit,
+            'saved_peer_id': self.saved_peer_id.to_dict() if isinstance(self.saved_peer_id, TLObject) else self.saved_peer_id
         }
 
     def _bytes(self):
         return b''.join((
-            b'\xa3\x83\x95n',
+            b'\x10/\x7f\x9c',
+            struct.pack('<I', (0 if self.saved_peer_id is None or self.saved_peer_id is False else 4)),
             self.peer._bytes(),
+            b'' if self.saved_peer_id is None or self.saved_peer_id is False else (self.saved_peer_id._bytes()),
             self.filter._bytes(),
             struct.pack('<i', self.offset_id),
             struct.pack('<i', self.limit),
@@ -3605,11 +4460,17 @@ class GetSearchResultsPositionsRequest(TLRequest):
 
     @classmethod
     def from_reader(cls, reader):
+        flags = reader.read_int()
+
         _peer = reader.tgread_object()
+        if flags & 4:
+            _saved_peer_id = reader.tgread_object()
+        else:
+            _saved_peer_id = None
         _filter = reader.tgread_object()
         _offset_id = reader.read_int()
         _limit = reader.read_int()
-        return cls(peer=_peer, filter=_filter, offset_id=_offset_id, limit=_limit)
+        return cls(peer=_peer, filter=_filter, offset_id=_offset_id, limit=_limit, saved_peer_id=_saved_peer_id)
 
 
 class GetSplitRangesRequest(TLRequest):
@@ -3629,6 +4490,37 @@ class GetSplitRangesRequest(TLRequest):
     @classmethod
     def from_reader(cls, reader):
         return cls()
+
+
+class GetSponsoredMessagesRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x9bd2f439
+    SUBCLASS_OF_ID = 0x7f4169e0
+
+    def __init__(self, peer: 'TypeInputPeer'):
+        """
+        :returns messages.SponsoredMessages: Instance of either SponsoredMessages, SponsoredMessagesEmpty.
+        """
+        self.peer = peer
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetSponsoredMessagesRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'9\xf4\xd2\x9b',
+            self.peer._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        return cls(peer=_peer)
 
 
 class GetStickerSetRequest(TLRequest):
@@ -3869,12 +4761,12 @@ class GetUnreadReactionsRequest(TLRequest):
 
 
 class GetWebPageRequest(TLRequest):
-    CONSTRUCTOR_ID = 0x32ca8f91
-    SUBCLASS_OF_ID = 0x55a97481
+    CONSTRUCTOR_ID = 0x8d9692a3
+    SUBCLASS_OF_ID = 0x2cf8b154
 
     def __init__(self, url: str, hash: int):
         """
-        :returns WebPage: Instance of either WebPageEmpty, WebPagePending, WebPage, WebPageNotModified.
+        :returns messages.WebPage: Instance of WebPage.
         """
         self.url = url
         self.hash = hash
@@ -3888,7 +4780,7 @@ class GetWebPageRequest(TLRequest):
 
     def _bytes(self):
         return b''.join((
-            b'\x91\x8f\xca2',
+            b'\xa3\x92\x96\x8d',
             self.serialize_bytes(self.url),
             struct.pack('<i', self.hash),
         ))
@@ -3901,12 +4793,12 @@ class GetWebPageRequest(TLRequest):
 
 
 class GetWebPagePreviewRequest(TLRequest):
-    CONSTRUCTOR_ID = 0x8b68b0cc
-    SUBCLASS_OF_ID = 0x476cbe32
+    CONSTRUCTOR_ID = 0x570d6f6f
+    SUBCLASS_OF_ID = 0xe29410c2
 
     def __init__(self, message: str, entities: Optional[List['TypeMessageEntity']]=None):
         """
-        :returns MessageMedia: Instance of either MessageMediaEmpty, MessageMediaPhoto, MessageMediaGeo, MessageMediaContact, MessageMediaUnsupported, MessageMediaDocument, MessageMediaWebPage, MessageMediaVenue, MessageMediaGame, MessageMediaInvoice, MessageMediaGeoLive, MessageMediaPoll, MessageMediaDice, MessageMediaStory.
+        :returns messages.WebPagePreview: Instance of WebPagePreview.
         """
         self.message = message
         self.entities = entities
@@ -3920,7 +4812,7 @@ class GetWebPagePreviewRequest(TLRequest):
 
     def _bytes(self):
         return b''.join((
-            b'\xcc\xb0h\x8b',
+            b'oo\rW',
             struct.pack('<I', (0 if self.entities is None or self.entities is False else 8)),
             self.serialize_bytes(self.message),
             b'' if self.entities is None or self.entities is False else b''.join((b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.entities)),b''.join(x._bytes() for x in self.entities))),
@@ -4694,6 +5586,85 @@ class ReorderPinnedDialogsRequest(TLRequest):
         return cls(folder_id=_folder_id, order=_order, force=_force)
 
 
+class ReorderPinnedSavedDialogsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x8b716587
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, order: List['TypeInputDialogPeer'], force: Optional[bool]=None):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.order = order
+        self.force = force
+
+    async def resolve(self, client, utils):
+        _tmp = []
+        for _x in self.order:
+            _tmp.append(await client._get_input_dialog(_x))
+
+        self.order = _tmp
+
+    def to_dict(self):
+        return {
+            '_': 'ReorderPinnedSavedDialogsRequest',
+            'order': [] if self.order is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.order],
+            'force': self.force
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\x87eq\x8b',
+            struct.pack('<I', (0 if self.force is None or self.force is False else 1)),
+            b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.order)),b''.join(x._bytes() for x in self.order),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _force = bool(flags & 1)
+        reader.read_int()
+        _order = []
+        for _ in range(reader.read_int()):
+            _x = reader.tgread_object()
+            _order.append(_x)
+
+        return cls(order=_order, force=_force)
+
+
+class ReorderQuickRepliesRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x60331907
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, order: List[int]):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.order = order
+
+    def to_dict(self):
+        return {
+            '_': 'ReorderQuickRepliesRequest',
+            'order': [] if self.order is None else self.order[:]
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\x07\x193`',
+            b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.order)),b''.join(struct.pack('<i', x) for x in self.order),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        reader.read_int()
+        _order = []
+        for _ in range(reader.read_int()):
+            _x = reader.read_int()
+            _order.append(_x)
+
+        return cls(order=_order)
+
+
 class ReorderStickerSetsRequest(TLRequest):
     CONSTRUCTOR_ID = 0x78337739
     SUBCLASS_OF_ID = 0xf5b399ac
@@ -4737,16 +5708,16 @@ class ReorderStickerSetsRequest(TLRequest):
 
 
 class ReportRequest(TLRequest):
-    CONSTRUCTOR_ID = 0x8953ab4e
-    SUBCLASS_OF_ID = 0xf5b399ac
+    CONSTRUCTOR_ID = 0xfc78af9b
+    SUBCLASS_OF_ID = 0xacd3f438
 
-    def __init__(self, peer: 'TypeInputPeer', id: List[int], reason: 'TypeReportReason', message: str):
+    def __init__(self, peer: 'TypeInputPeer', id: List[int], option: bytes, message: str):
         """
-        :returns Bool: This type has no constructors.
+        :returns ReportResult: Instance of either ReportResultChooseOption, ReportResultAddComment, ReportResultReported.
         """
         self.peer = peer
         self.id = id
-        self.reason = reason
+        self.option = option
         self.message = message
 
     async def resolve(self, client, utils):
@@ -4757,16 +5728,16 @@ class ReportRequest(TLRequest):
             '_': 'ReportRequest',
             'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
             'id': [] if self.id is None else self.id[:],
-            'reason': self.reason.to_dict() if isinstance(self.reason, TLObject) else self.reason,
+            'option': self.option,
             'message': self.message
         }
 
     def _bytes(self):
         return b''.join((
-            b'N\xabS\x89',
+            b'\x9b\xafx\xfc',
             self.peer._bytes(),
             b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.id)),b''.join(struct.pack('<i', x) for x in self.id),
-            self.reason._bytes(),
+            self.serialize_bytes(self.option),
             self.serialize_bytes(self.message),
         ))
 
@@ -4779,9 +5750,9 @@ class ReportRequest(TLRequest):
             _x = reader.read_int()
             _id.append(_x)
 
-        _reason = reader.tgread_object()
+        _option = reader.tgread_bytes()
         _message = reader.tgread_string()
-        return cls(peer=_peer, id=_id, reason=_reason, message=_message)
+        return cls(peer=_peer, id=_id, option=_option, message=_message)
 
 
 class ReportEncryptedSpamRequest(TLRequest):
@@ -4810,6 +5781,52 @@ class ReportEncryptedSpamRequest(TLRequest):
     def from_reader(cls, reader):
         _peer = reader.tgread_object()
         return cls(peer=_peer)
+
+
+class ReportMessagesDeliveryRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x5a6d7395
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, peer: 'TypeInputPeer', id: List[int], push: Optional[bool]=None):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.peer = peer
+        self.id = id
+        self.push = push
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'ReportMessagesDeliveryRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'id': [] if self.id is None else self.id[:],
+            'push': self.push
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\x95smZ',
+            struct.pack('<I', (0 if self.push is None or self.push is False else 1)),
+            self.peer._bytes(),
+            b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.id)),b''.join(struct.pack('<i', x) for x in self.id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _push = bool(flags & 1)
+        _peer = reader.tgread_object()
+        reader.read_int()
+        _id = []
+        for _ in range(reader.read_int()):
+            _x = reader.read_int()
+            _id.append(_x)
+
+        return cls(peer=_peer, id=_id, push=_push)
 
 
 class ReportReactionRequest(TLRequest):
@@ -4883,18 +5900,52 @@ class ReportSpamRequest(TLRequest):
         return cls(peer=_peer)
 
 
-class RequestAppWebViewRequest(TLRequest):
-    CONSTRUCTOR_ID = 0x8c5a3b3c
-    SUBCLASS_OF_ID = 0x1c24a413
+class ReportSponsoredMessageRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x12cbf0c4
+    SUBCLASS_OF_ID = 0x26231822
 
-    def __init__(self, peer: 'TypeInputPeer', app: 'TypeInputBotApp', platform: str, write_allowed: Optional[bool]=None, start_param: Optional[str]=None, theme_params: Optional['TypeDataJSON']=None):
+    def __init__(self, option: bytes, random_id: bytes=None):
         """
-        :returns AppWebViewResult: Instance of AppWebViewResultUrl.
+        :returns channels.SponsoredMessageReportResult: Instance of either SponsoredMessageReportResultChooseOption, SponsoredMessageReportResultAdsHidden, SponsoredMessageReportResultReported.
+        """
+        self.option = option
+        self.random_id = random_id if random_id is not None else int.from_bytes(os.urandom(4), 'big', signed=True)
+
+    def to_dict(self):
+        return {
+            '_': 'ReportSponsoredMessageRequest',
+            'option': self.option,
+            'random_id': self.random_id
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xc4\xf0\xcb\x12',
+            self.serialize_bytes(self.random_id),
+            self.serialize_bytes(self.option),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _random_id = reader.tgread_bytes()
+        _option = reader.tgread_bytes()
+        return cls(option=_option, random_id=_random_id)
+
+
+class RequestAppWebViewRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x53618bce
+    SUBCLASS_OF_ID = 0x93cea746
+
+    def __init__(self, peer: 'TypeInputPeer', app: 'TypeInputBotApp', platform: str, write_allowed: Optional[bool]=None, compact: Optional[bool]=None, fullscreen: Optional[bool]=None, start_param: Optional[str]=None, theme_params: Optional['TypeDataJSON']=None):
+        """
+        :returns WebViewResult: Instance of WebViewResultUrl.
         """
         self.peer = peer
         self.app = app
         self.platform = platform
         self.write_allowed = write_allowed
+        self.compact = compact
+        self.fullscreen = fullscreen
         self.start_param = start_param
         self.theme_params = theme_params
 
@@ -4908,14 +5959,16 @@ class RequestAppWebViewRequest(TLRequest):
             'app': self.app.to_dict() if isinstance(self.app, TLObject) else self.app,
             'platform': self.platform,
             'write_allowed': self.write_allowed,
+            'compact': self.compact,
+            'fullscreen': self.fullscreen,
             'start_param': self.start_param,
             'theme_params': self.theme_params.to_dict() if isinstance(self.theme_params, TLObject) else self.theme_params
         }
 
     def _bytes(self):
         return b''.join((
-            b'<;Z\x8c',
-            struct.pack('<I', (0 if self.write_allowed is None or self.write_allowed is False else 1) | (0 if self.start_param is None or self.start_param is False else 2) | (0 if self.theme_params is None or self.theme_params is False else 4)),
+            b'\xce\x8baS',
+            struct.pack('<I', (0 if self.write_allowed is None or self.write_allowed is False else 1) | (0 if self.compact is None or self.compact is False else 128) | (0 if self.fullscreen is None or self.fullscreen is False else 256) | (0 if self.start_param is None or self.start_param is False else 2) | (0 if self.theme_params is None or self.theme_params is False else 4)),
             self.peer._bytes(),
             self.app._bytes(),
             b'' if self.start_param is None or self.start_param is False else (self.serialize_bytes(self.start_param)),
@@ -4928,6 +5981,8 @@ class RequestAppWebViewRequest(TLRequest):
         flags = reader.read_int()
 
         _write_allowed = bool(flags & 1)
+        _compact = bool(flags & 128)
+        _fullscreen = bool(flags & 256)
         _peer = reader.tgread_object()
         _app = reader.tgread_object()
         if flags & 2:
@@ -4939,7 +5994,7 @@ class RequestAppWebViewRequest(TLRequest):
         else:
             _theme_params = None
         _platform = reader.tgread_string()
-        return cls(peer=_peer, app=_app, platform=_platform, write_allowed=_write_allowed, start_param=_start_param, theme_params=_theme_params)
+        return cls(peer=_peer, app=_app, platform=_platform, write_allowed=_write_allowed, compact=_compact, fullscreen=_fullscreen, start_param=_start_param, theme_params=_theme_params)
 
 
 class RequestEncryptionRequest(TLRequest):
@@ -4981,18 +6036,85 @@ class RequestEncryptionRequest(TLRequest):
         return cls(user_id=_user_id, g_a=_g_a, random_id=_random_id)
 
 
-class RequestSimpleWebViewRequest(TLRequest):
-    CONSTRUCTOR_ID = 0x299bec8e
-    SUBCLASS_OF_ID = 0x15eee3db
+class RequestMainWebViewRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xc9e01e7b
+    SUBCLASS_OF_ID = 0x93cea746
 
-    def __init__(self, bot: 'TypeInputUser', url: str, platform: str, from_switch_webview: Optional[bool]=None, theme_params: Optional['TypeDataJSON']=None):
+    def __init__(self, peer: 'TypeInputPeer', bot: 'TypeInputUser', platform: str, compact: Optional[bool]=None, fullscreen: Optional[bool]=None, start_param: Optional[str]=None, theme_params: Optional['TypeDataJSON']=None):
         """
-        :returns SimpleWebViewResult: Instance of SimpleWebViewResultUrl.
+        :returns WebViewResult: Instance of WebViewResultUrl.
+        """
+        self.peer = peer
+        self.bot = bot
+        self.platform = platform
+        self.compact = compact
+        self.fullscreen = fullscreen
+        self.start_param = start_param
+        self.theme_params = theme_params
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+        self.bot = utils.get_input_user(await client.get_input_entity(self.bot))
+
+    def to_dict(self):
+        return {
+            '_': 'RequestMainWebViewRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'bot': self.bot.to_dict() if isinstance(self.bot, TLObject) else self.bot,
+            'platform': self.platform,
+            'compact': self.compact,
+            'fullscreen': self.fullscreen,
+            'start_param': self.start_param,
+            'theme_params': self.theme_params.to_dict() if isinstance(self.theme_params, TLObject) else self.theme_params
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'{\x1e\xe0\xc9',
+            struct.pack('<I', (0 if self.compact is None or self.compact is False else 128) | (0 if self.fullscreen is None or self.fullscreen is False else 256) | (0 if self.start_param is None or self.start_param is False else 2) | (0 if self.theme_params is None or self.theme_params is False else 1)),
+            self.peer._bytes(),
+            self.bot._bytes(),
+            b'' if self.start_param is None or self.start_param is False else (self.serialize_bytes(self.start_param)),
+            b'' if self.theme_params is None or self.theme_params is False else (self.theme_params._bytes()),
+            self.serialize_bytes(self.platform),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _compact = bool(flags & 128)
+        _fullscreen = bool(flags & 256)
+        _peer = reader.tgread_object()
+        _bot = reader.tgread_object()
+        if flags & 2:
+            _start_param = reader.tgread_string()
+        else:
+            _start_param = None
+        if flags & 1:
+            _theme_params = reader.tgread_object()
+        else:
+            _theme_params = None
+        _platform = reader.tgread_string()
+        return cls(peer=_peer, bot=_bot, platform=_platform, compact=_compact, fullscreen=_fullscreen, start_param=_start_param, theme_params=_theme_params)
+
+
+class RequestSimpleWebViewRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x413a3e73
+    SUBCLASS_OF_ID = 0x93cea746
+
+    def __init__(self, bot: 'TypeInputUser', platform: str, from_switch_webview: Optional[bool]=None, from_side_menu: Optional[bool]=None, compact: Optional[bool]=None, fullscreen: Optional[bool]=None, url: Optional[str]=None, start_param: Optional[str]=None, theme_params: Optional['TypeDataJSON']=None):
+        """
+        :returns WebViewResult: Instance of WebViewResultUrl.
         """
         self.bot = bot
-        self.url = url
         self.platform = platform
         self.from_switch_webview = from_switch_webview
+        self.from_side_menu = from_side_menu
+        self.compact = compact
+        self.fullscreen = fullscreen
+        self.url = url
+        self.start_param = start_param
         self.theme_params = theme_params
 
     async def resolve(self, client, utils):
@@ -5002,18 +6124,23 @@ class RequestSimpleWebViewRequest(TLRequest):
         return {
             '_': 'RequestSimpleWebViewRequest',
             'bot': self.bot.to_dict() if isinstance(self.bot, TLObject) else self.bot,
-            'url': self.url,
             'platform': self.platform,
             'from_switch_webview': self.from_switch_webview,
+            'from_side_menu': self.from_side_menu,
+            'compact': self.compact,
+            'fullscreen': self.fullscreen,
+            'url': self.url,
+            'start_param': self.start_param,
             'theme_params': self.theme_params.to_dict() if isinstance(self.theme_params, TLObject) else self.theme_params
         }
 
     def _bytes(self):
         return b''.join((
-            b'\x8e\xec\x9b)',
-            struct.pack('<I', (0 if self.from_switch_webview is None or self.from_switch_webview is False else 2) | (0 if self.theme_params is None or self.theme_params is False else 1)),
+            b's>:A',
+            struct.pack('<I', (0 if self.from_switch_webview is None or self.from_switch_webview is False else 2) | (0 if self.from_side_menu is None or self.from_side_menu is False else 4) | (0 if self.compact is None or self.compact is False else 128) | (0 if self.fullscreen is None or self.fullscreen is False else 256) | (0 if self.url is None or self.url is False else 8) | (0 if self.start_param is None or self.start_param is False else 16) | (0 if self.theme_params is None or self.theme_params is False else 1)),
             self.bot._bytes(),
-            self.serialize_bytes(self.url),
+            b'' if self.url is None or self.url is False else (self.serialize_bytes(self.url)),
+            b'' if self.start_param is None or self.start_param is False else (self.serialize_bytes(self.start_param)),
             b'' if self.theme_params is None or self.theme_params is False else (self.theme_params._bytes()),
             self.serialize_bytes(self.platform),
         ))
@@ -5023,14 +6150,24 @@ class RequestSimpleWebViewRequest(TLRequest):
         flags = reader.read_int()
 
         _from_switch_webview = bool(flags & 2)
+        _from_side_menu = bool(flags & 4)
+        _compact = bool(flags & 128)
+        _fullscreen = bool(flags & 256)
         _bot = reader.tgread_object()
-        _url = reader.tgread_string()
+        if flags & 8:
+            _url = reader.tgread_string()
+        else:
+            _url = None
+        if flags & 16:
+            _start_param = reader.tgread_string()
+        else:
+            _start_param = None
         if flags & 1:
             _theme_params = reader.tgread_object()
         else:
             _theme_params = None
         _platform = reader.tgread_string()
-        return cls(bot=_bot, url=_url, platform=_platform, from_switch_webview=_from_switch_webview, theme_params=_theme_params)
+        return cls(bot=_bot, platform=_platform, from_switch_webview=_from_switch_webview, from_side_menu=_from_side_menu, compact=_compact, fullscreen=_fullscreen, url=_url, start_param=_start_param, theme_params=_theme_params)
 
 
 class RequestUrlAuthRequest(TLRequest):
@@ -5097,7 +6234,7 @@ class RequestWebViewRequest(TLRequest):
     CONSTRUCTOR_ID = 0x269dc2c1
     SUBCLASS_OF_ID = 0x93cea746
 
-    def __init__(self, peer: 'TypeInputPeer', bot: 'TypeInputUser', platform: str, from_bot_menu: Optional[bool]=None, silent: Optional[bool]=None, url: Optional[str]=None, start_param: Optional[str]=None, theme_params: Optional['TypeDataJSON']=None, reply_to: Optional['TypeInputReplyTo']=None, send_as: Optional['TypeInputPeer']=None):
+    def __init__(self, peer: 'TypeInputPeer', bot: 'TypeInputUser', platform: str, from_bot_menu: Optional[bool]=None, silent: Optional[bool]=None, compact: Optional[bool]=None, fullscreen: Optional[bool]=None, url: Optional[str]=None, start_param: Optional[str]=None, theme_params: Optional['TypeDataJSON']=None, reply_to: Optional['TypeInputReplyTo']=None, send_as: Optional['TypeInputPeer']=None):
         """
         :returns WebViewResult: Instance of WebViewResultUrl.
         """
@@ -5106,6 +6243,8 @@ class RequestWebViewRequest(TLRequest):
         self.platform = platform
         self.from_bot_menu = from_bot_menu
         self.silent = silent
+        self.compact = compact
+        self.fullscreen = fullscreen
         self.url = url
         self.start_param = start_param
         self.theme_params = theme_params
@@ -5126,6 +6265,8 @@ class RequestWebViewRequest(TLRequest):
             'platform': self.platform,
             'from_bot_menu': self.from_bot_menu,
             'silent': self.silent,
+            'compact': self.compact,
+            'fullscreen': self.fullscreen,
             'url': self.url,
             'start_param': self.start_param,
             'theme_params': self.theme_params.to_dict() if isinstance(self.theme_params, TLObject) else self.theme_params,
@@ -5136,7 +6277,7 @@ class RequestWebViewRequest(TLRequest):
     def _bytes(self):
         return b''.join((
             b'\xc1\xc2\x9d&',
-            struct.pack('<I', (0 if self.from_bot_menu is None or self.from_bot_menu is False else 16) | (0 if self.silent is None or self.silent is False else 32) | (0 if self.url is None or self.url is False else 2) | (0 if self.start_param is None or self.start_param is False else 8) | (0 if self.theme_params is None or self.theme_params is False else 4) | (0 if self.reply_to is None or self.reply_to is False else 1) | (0 if self.send_as is None or self.send_as is False else 8192)),
+            struct.pack('<I', (0 if self.from_bot_menu is None or self.from_bot_menu is False else 16) | (0 if self.silent is None or self.silent is False else 32) | (0 if self.compact is None or self.compact is False else 128) | (0 if self.fullscreen is None or self.fullscreen is False else 256) | (0 if self.url is None or self.url is False else 2) | (0 if self.start_param is None or self.start_param is False else 8) | (0 if self.theme_params is None or self.theme_params is False else 4) | (0 if self.reply_to is None or self.reply_to is False else 1) | (0 if self.send_as is None or self.send_as is False else 8192)),
             self.peer._bytes(),
             self.bot._bytes(),
             b'' if self.url is None or self.url is False else (self.serialize_bytes(self.url)),
@@ -5153,6 +6294,8 @@ class RequestWebViewRequest(TLRequest):
 
         _from_bot_menu = bool(flags & 16)
         _silent = bool(flags & 32)
+        _compact = bool(flags & 128)
+        _fullscreen = bool(flags & 256)
         _peer = reader.tgread_object()
         _bot = reader.tgread_object()
         if flags & 2:
@@ -5176,7 +6319,7 @@ class RequestWebViewRequest(TLRequest):
             _send_as = reader.tgread_object()
         else:
             _send_as = None
-        return cls(peer=_peer, bot=_bot, platform=_platform, from_bot_menu=_from_bot_menu, silent=_silent, url=_url, start_param=_start_param, theme_params=_theme_params, reply_to=_reply_to, send_as=_send_as)
+        return cls(peer=_peer, bot=_bot, platform=_platform, from_bot_menu=_from_bot_menu, silent=_silent, compact=_compact, fullscreen=_fullscreen, url=_url, start_param=_start_param, theme_params=_theme_params, reply_to=_reply_to, send_as=_send_as)
 
 
 class SaveDefaultSendAsRequest(TLRequest):
@@ -5216,22 +6359,26 @@ class SaveDefaultSendAsRequest(TLRequest):
 
 
 class SaveDraftRequest(TLRequest):
-    CONSTRUCTOR_ID = 0xb4331e3f
+    CONSTRUCTOR_ID = 0xd372c5ce
     SUBCLASS_OF_ID = 0xf5b399ac
 
-    def __init__(self, peer: 'TypeInputPeer', message: str, no_webpage: Optional[bool]=None, reply_to_msg_id: Optional[int]=None, top_msg_id: Optional[int]=None, entities: Optional[List['TypeMessageEntity']]=None):
+    def __init__(self, peer: 'TypeInputPeer', message: str, no_webpage: Optional[bool]=None, invert_media: Optional[bool]=None, reply_to: Optional['TypeInputReplyTo']=None, entities: Optional[List['TypeMessageEntity']]=None, media: Optional['TypeInputMedia']=None, effect: Optional[int]=None):
         """
         :returns Bool: This type has no constructors.
         """
         self.peer = peer
         self.message = message
         self.no_webpage = no_webpage
-        self.reply_to_msg_id = reply_to_msg_id
-        self.top_msg_id = top_msg_id
+        self.invert_media = invert_media
+        self.reply_to = reply_to
         self.entities = entities
+        self.media = media
+        self.effect = effect
 
     async def resolve(self, client, utils):
         self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+        if self.media:
+            self.media = utils.get_input_media(self.media)
 
     def to_dict(self):
         return {
@@ -5239,20 +6386,23 @@ class SaveDraftRequest(TLRequest):
             'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
             'message': self.message,
             'no_webpage': self.no_webpage,
-            'reply_to_msg_id': self.reply_to_msg_id,
-            'top_msg_id': self.top_msg_id,
-            'entities': [] if self.entities is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.entities]
+            'invert_media': self.invert_media,
+            'reply_to': self.reply_to.to_dict() if isinstance(self.reply_to, TLObject) else self.reply_to,
+            'entities': [] if self.entities is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.entities],
+            'media': self.media.to_dict() if isinstance(self.media, TLObject) else self.media,
+            'effect': self.effect
         }
 
     def _bytes(self):
         return b''.join((
-            b'?\x1e3\xb4',
-            struct.pack('<I', (0 if self.no_webpage is None or self.no_webpage is False else 2) | (0 if self.reply_to_msg_id is None or self.reply_to_msg_id is False else 1) | (0 if self.top_msg_id is None or self.top_msg_id is False else 4) | (0 if self.entities is None or self.entities is False else 8)),
-            b'' if self.reply_to_msg_id is None or self.reply_to_msg_id is False else (struct.pack('<i', self.reply_to_msg_id)),
-            b'' if self.top_msg_id is None or self.top_msg_id is False else (struct.pack('<i', self.top_msg_id)),
+            b'\xce\xc5r\xd3',
+            struct.pack('<I', (0 if self.no_webpage is None or self.no_webpage is False else 2) | (0 if self.invert_media is None or self.invert_media is False else 64) | (0 if self.reply_to is None or self.reply_to is False else 16) | (0 if self.entities is None or self.entities is False else 8) | (0 if self.media is None or self.media is False else 32) | (0 if self.effect is None or self.effect is False else 128)),
+            b'' if self.reply_to is None or self.reply_to is False else (self.reply_to._bytes()),
             self.peer._bytes(),
             self.serialize_bytes(self.message),
             b'' if self.entities is None or self.entities is False else b''.join((b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.entities)),b''.join(x._bytes() for x in self.entities))),
+            b'' if self.media is None or self.media is False else (self.media._bytes()),
+            b'' if self.effect is None or self.effect is False else (struct.pack('<q', self.effect)),
         ))
 
     @classmethod
@@ -5260,14 +6410,11 @@ class SaveDraftRequest(TLRequest):
         flags = reader.read_int()
 
         _no_webpage = bool(flags & 2)
-        if flags & 1:
-            _reply_to_msg_id = reader.read_int()
+        _invert_media = bool(flags & 64)
+        if flags & 16:
+            _reply_to = reader.tgread_object()
         else:
-            _reply_to_msg_id = None
-        if flags & 4:
-            _top_msg_id = reader.read_int()
-        else:
-            _top_msg_id = None
+            _reply_to = None
         _peer = reader.tgread_object()
         _message = reader.tgread_string()
         if flags & 8:
@@ -5279,7 +6426,15 @@ class SaveDraftRequest(TLRequest):
 
         else:
             _entities = None
-        return cls(peer=_peer, message=_message, no_webpage=_no_webpage, reply_to_msg_id=_reply_to_msg_id, top_msg_id=_top_msg_id, entities=_entities)
+        if flags & 32:
+            _media = reader.tgread_object()
+        else:
+            _media = None
+        if flags & 128:
+            _effect = reader.read_long()
+        else:
+            _effect = None
+        return cls(peer=_peer, message=_message, no_webpage=_no_webpage, invert_media=_invert_media, reply_to=_reply_to, entities=_entities, media=_media, effect=_effect)
 
 
 class SaveGifRequest(TLRequest):
@@ -5315,6 +6470,56 @@ class SaveGifRequest(TLRequest):
         _id = reader.tgread_object()
         _unsave = reader.tgread_bool()
         return cls(id=_id, unsave=_unsave)
+
+
+class SavePreparedInlineMessageRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xf21f7f2f
+    SUBCLASS_OF_ID = 0xef9119bb
+
+    def __init__(self, result: 'TypeInputBotInlineResult', user_id: 'TypeInputUser', peer_types: Optional[List['TypeInlineQueryPeerType']]=None):
+        """
+        :returns messages.BotPreparedInlineMessage: Instance of BotPreparedInlineMessage.
+        """
+        self.result = result
+        self.user_id = user_id
+        self.peer_types = peer_types
+
+    async def resolve(self, client, utils):
+        self.user_id = utils.get_input_user(await client.get_input_entity(self.user_id))
+
+    def to_dict(self):
+        return {
+            '_': 'SavePreparedInlineMessageRequest',
+            'result': self.result.to_dict() if isinstance(self.result, TLObject) else self.result,
+            'user_id': self.user_id.to_dict() if isinstance(self.user_id, TLObject) else self.user_id,
+            'peer_types': [] if self.peer_types is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.peer_types]
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'/\x7f\x1f\xf2',
+            struct.pack('<I', (0 if self.peer_types is None or self.peer_types is False else 1)),
+            self.result._bytes(),
+            self.user_id._bytes(),
+            b'' if self.peer_types is None or self.peer_types is False else b''.join((b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.peer_types)),b''.join(x._bytes() for x in self.peer_types))),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _result = reader.tgread_object()
+        _user_id = reader.tgread_object()
+        if flags & 1:
+            reader.read_int()
+            _peer_types = []
+            for _ in range(reader.read_int()):
+                _x = reader.tgread_object()
+                _peer_types.append(_x)
+
+        else:
+            _peer_types = None
+        return cls(result=_result, user_id=_user_id, peer_types=_peer_types)
 
 
 class SaveRecentStickerRequest(TLRequest):
@@ -5359,10 +6564,10 @@ class SaveRecentStickerRequest(TLRequest):
 
 
 class SearchRequest(TLRequest):
-    CONSTRUCTOR_ID = 0xa0fda762
+    CONSTRUCTOR_ID = 0x29ee847a
     SUBCLASS_OF_ID = 0xd4b40b5e
 
-    def __init__(self, peer: 'TypeInputPeer', q: str, filter: 'TypeMessagesFilter', min_date: Optional[datetime], max_date: Optional[datetime], offset_id: int, add_offset: int, limit: int, max_id: int, min_id: int, hash: int, from_id: Optional['TypeInputPeer']=None, top_msg_id: Optional[int]=None):
+    def __init__(self, peer: 'TypeInputPeer', q: str, filter: 'TypeMessagesFilter', min_date: Optional[datetime], max_date: Optional[datetime], offset_id: int, add_offset: int, limit: int, max_id: int, min_id: int, hash: int, from_id: Optional['TypeInputPeer']=None, saved_peer_id: Optional['TypeInputPeer']=None, saved_reaction: Optional[List['TypeReaction']]=None, top_msg_id: Optional[int]=None):
         """
         :returns messages.Messages: Instance of either Messages, MessagesSlice, ChannelMessages, MessagesNotModified.
         """
@@ -5378,12 +6583,17 @@ class SearchRequest(TLRequest):
         self.min_id = min_id
         self.hash = hash
         self.from_id = from_id
+        self.saved_peer_id = saved_peer_id
+        self.saved_reaction = saved_reaction
         self.top_msg_id = top_msg_id
 
     async def resolve(self, client, utils):
         self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
         if self.from_id:
             self.from_id = utils.get_input_peer(await client.get_input_entity(self.from_id))
+
+        if self.saved_peer_id:
+            self.saved_peer_id = utils.get_input_peer(await client.get_input_entity(self.saved_peer_id))
 
     def to_dict(self):
         return {
@@ -5400,16 +6610,20 @@ class SearchRequest(TLRequest):
             'min_id': self.min_id,
             'hash': self.hash,
             'from_id': self.from_id.to_dict() if isinstance(self.from_id, TLObject) else self.from_id,
+            'saved_peer_id': self.saved_peer_id.to_dict() if isinstance(self.saved_peer_id, TLObject) else self.saved_peer_id,
+            'saved_reaction': [] if self.saved_reaction is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.saved_reaction],
             'top_msg_id': self.top_msg_id
         }
 
     def _bytes(self):
         return b''.join((
-            b'b\xa7\xfd\xa0',
-            struct.pack('<I', (0 if self.from_id is None or self.from_id is False else 1) | (0 if self.top_msg_id is None or self.top_msg_id is False else 2)),
+            b'z\x84\xee)',
+            struct.pack('<I', (0 if self.from_id is None or self.from_id is False else 1) | (0 if self.saved_peer_id is None or self.saved_peer_id is False else 4) | (0 if self.saved_reaction is None or self.saved_reaction is False else 8) | (0 if self.top_msg_id is None or self.top_msg_id is False else 2)),
             self.peer._bytes(),
             self.serialize_bytes(self.q),
             b'' if self.from_id is None or self.from_id is False else (self.from_id._bytes()),
+            b'' if self.saved_peer_id is None or self.saved_peer_id is False else (self.saved_peer_id._bytes()),
+            b'' if self.saved_reaction is None or self.saved_reaction is False else b''.join((b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.saved_reaction)),b''.join(x._bytes() for x in self.saved_reaction))),
             b'' if self.top_msg_id is None or self.top_msg_id is False else (struct.pack('<i', self.top_msg_id)),
             self.filter._bytes(),
             self.serialize_datetime(self.min_date),
@@ -5432,6 +6646,19 @@ class SearchRequest(TLRequest):
             _from_id = reader.tgread_object()
         else:
             _from_id = None
+        if flags & 4:
+            _saved_peer_id = reader.tgread_object()
+        else:
+            _saved_peer_id = None
+        if flags & 8:
+            reader.read_int()
+            _saved_reaction = []
+            for _ in range(reader.read_int()):
+                _x = reader.tgread_object()
+                _saved_reaction.append(_x)
+
+        else:
+            _saved_reaction = None
         if flags & 2:
             _top_msg_id = reader.read_int()
         else:
@@ -5445,7 +6672,7 @@ class SearchRequest(TLRequest):
         _max_id = reader.read_int()
         _min_id = reader.read_int()
         _hash = reader.read_long()
-        return cls(peer=_peer, q=_q, filter=_filter, min_date=_min_date, max_date=_max_date, offset_id=_offset_id, add_offset=_add_offset, limit=_limit, max_id=_max_id, min_id=_min_id, hash=_hash, from_id=_from_id, top_msg_id=_top_msg_id)
+        return cls(peer=_peer, q=_q, filter=_filter, min_date=_min_date, max_date=_max_date, offset_id=_offset_id, add_offset=_add_offset, limit=_limit, max_id=_max_id, min_id=_min_id, hash=_hash, from_id=_from_id, saved_peer_id=_saved_peer_id, saved_reaction=_saved_reaction, top_msg_id=_top_msg_id)
 
 
 class SearchCustomEmojiRequest(TLRequest):
@@ -5480,11 +6707,49 @@ class SearchCustomEmojiRequest(TLRequest):
         return cls(emoticon=_emoticon, hash=_hash)
 
 
+class SearchEmojiStickerSetsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x92b4494c
+    SUBCLASS_OF_ID = 0x40df361
+
+    def __init__(self, q: str, hash: int, exclude_featured: Optional[bool]=None):
+        """
+        :returns messages.FoundStickerSets: Instance of either FoundStickerSetsNotModified, FoundStickerSets.
+        """
+        self.q = q
+        self.hash = hash
+        self.exclude_featured = exclude_featured
+
+    def to_dict(self):
+        return {
+            '_': 'SearchEmojiStickerSetsRequest',
+            'q': self.q,
+            'hash': self.hash,
+            'exclude_featured': self.exclude_featured
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'LI\xb4\x92',
+            struct.pack('<I', (0 if self.exclude_featured is None or self.exclude_featured is False else 1)),
+            self.serialize_bytes(self.q),
+            struct.pack('<q', self.hash),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _exclude_featured = bool(flags & 1)
+        _q = reader.tgread_string()
+        _hash = reader.read_long()
+        return cls(q=_q, hash=_hash, exclude_featured=_exclude_featured)
+
+
 class SearchGlobalRequest(TLRequest):
     CONSTRUCTOR_ID = 0x4bc6589a
     SUBCLASS_OF_ID = 0xd4b40b5e
 
-    def __init__(self, q: str, filter: 'TypeMessagesFilter', min_date: Optional[datetime], max_date: Optional[datetime], offset_rate: int, offset_peer: 'TypeInputPeer', offset_id: int, limit: int, folder_id: Optional[int]=None):
+    def __init__(self, q: str, filter: 'TypeMessagesFilter', min_date: Optional[datetime], max_date: Optional[datetime], offset_rate: int, offset_peer: 'TypeInputPeer', offset_id: int, limit: int, broadcasts_only: Optional[bool]=None, groups_only: Optional[bool]=None, users_only: Optional[bool]=None, folder_id: Optional[int]=None):
         """
         :returns messages.Messages: Instance of either Messages, MessagesSlice, ChannelMessages, MessagesNotModified.
         """
@@ -5496,6 +6761,9 @@ class SearchGlobalRequest(TLRequest):
         self.offset_peer = offset_peer
         self.offset_id = offset_id
         self.limit = limit
+        self.broadcasts_only = broadcasts_only
+        self.groups_only = groups_only
+        self.users_only = users_only
         self.folder_id = folder_id
 
     async def resolve(self, client, utils):
@@ -5512,13 +6780,16 @@ class SearchGlobalRequest(TLRequest):
             'offset_peer': self.offset_peer.to_dict() if isinstance(self.offset_peer, TLObject) else self.offset_peer,
             'offset_id': self.offset_id,
             'limit': self.limit,
+            'broadcasts_only': self.broadcasts_only,
+            'groups_only': self.groups_only,
+            'users_only': self.users_only,
             'folder_id': self.folder_id
         }
 
     def _bytes(self):
         return b''.join((
             b'\x9aX\xc6K',
-            struct.pack('<I', (0 if self.folder_id is None or self.folder_id is False else 1)),
+            struct.pack('<I', (0 if self.broadcasts_only is None or self.broadcasts_only is False else 2) | (0 if self.groups_only is None or self.groups_only is False else 4) | (0 if self.users_only is None or self.users_only is False else 8) | (0 if self.folder_id is None or self.folder_id is False else 1)),
             b'' if self.folder_id is None or self.folder_id is False else (struct.pack('<i', self.folder_id)),
             self.serialize_bytes(self.q),
             self.filter._bytes(),
@@ -5534,6 +6805,9 @@ class SearchGlobalRequest(TLRequest):
     def from_reader(cls, reader):
         flags = reader.read_int()
 
+        _broadcasts_only = bool(flags & 2)
+        _groups_only = bool(flags & 4)
+        _users_only = bool(flags & 8)
         if flags & 1:
             _folder_id = reader.read_int()
         else:
@@ -5546,7 +6820,7 @@ class SearchGlobalRequest(TLRequest):
         _offset_peer = reader.tgread_object()
         _offset_id = reader.read_int()
         _limit = reader.read_int()
-        return cls(q=_q, filter=_filter, min_date=_min_date, max_date=_max_date, offset_rate=_offset_rate, offset_peer=_offset_peer, offset_id=_offset_id, limit=_limit, folder_id=_folder_id)
+        return cls(q=_q, filter=_filter, min_date=_min_date, max_date=_max_date, offset_rate=_offset_rate, offset_peer=_offset_peer, offset_id=_offset_id, limit=_limit, broadcasts_only=_broadcasts_only, groups_only=_groups_only, users_only=_users_only, folder_id=_folder_id)
 
 
 class SearchSentMediaRequest(TLRequest):
@@ -5623,22 +6897,85 @@ class SearchStickerSetsRequest(TLRequest):
         return cls(q=_q, hash=_hash, exclude_featured=_exclude_featured)
 
 
+class SearchStickersRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x29b1c66a
+    SUBCLASS_OF_ID = 0x6402151
+
+    def __init__(self, q: str, emoticon: str, lang_code: List[str], offset: int, limit: int, hash: int, emojis: Optional[bool]=None):
+        """
+        :returns messages.FoundStickers: Instance of either FoundStickersNotModified, FoundStickers.
+        """
+        self.q = q
+        self.emoticon = emoticon
+        self.lang_code = lang_code
+        self.offset = offset
+        self.limit = limit
+        self.hash = hash
+        self.emojis = emojis
+
+    def to_dict(self):
+        return {
+            '_': 'SearchStickersRequest',
+            'q': self.q,
+            'emoticon': self.emoticon,
+            'lang_code': [] if self.lang_code is None else self.lang_code[:],
+            'offset': self.offset,
+            'limit': self.limit,
+            'hash': self.hash,
+            'emojis': self.emojis
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'j\xc6\xb1)',
+            struct.pack('<I', (0 if self.emojis is None or self.emojis is False else 1)),
+            self.serialize_bytes(self.q),
+            self.serialize_bytes(self.emoticon),
+            b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.lang_code)),b''.join(self.serialize_bytes(x) for x in self.lang_code),
+            struct.pack('<i', self.offset),
+            struct.pack('<i', self.limit),
+            struct.pack('<q', self.hash),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _emojis = bool(flags & 1)
+        _q = reader.tgread_string()
+        _emoticon = reader.tgread_string()
+        reader.read_int()
+        _lang_code = []
+        for _ in range(reader.read_int()):
+            _x = reader.tgread_string()
+            _lang_code.append(_x)
+
+        _offset = reader.read_int()
+        _limit = reader.read_int()
+        _hash = reader.read_long()
+        return cls(q=_q, emoticon=_emoticon, lang_code=_lang_code, offset=_offset, limit=_limit, hash=_hash, emojis=_emojis)
+
+
 class SendBotRequestedPeerRequest(TLRequest):
-    CONSTRUCTOR_ID = 0xfe38d01b
+    CONSTRUCTOR_ID = 0x91b2d060
     SUBCLASS_OF_ID = 0x8af52aac
 
-    def __init__(self, peer: 'TypeInputPeer', msg_id: int, button_id: int, requested_peer: 'TypeInputPeer'):
+    def __init__(self, peer: 'TypeInputPeer', msg_id: int, button_id: int, requested_peers: List['TypeInputPeer']):
         """
         :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
         """
         self.peer = peer
         self.msg_id = msg_id
         self.button_id = button_id
-        self.requested_peer = requested_peer
+        self.requested_peers = requested_peers
 
     async def resolve(self, client, utils):
         self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
-        self.requested_peer = utils.get_input_peer(await client.get_input_entity(self.requested_peer))
+        _tmp = []
+        for _x in self.requested_peers:
+            _tmp.append(utils.get_input_peer(await client.get_input_entity(_x)))
+
+        self.requested_peers = _tmp
 
     def to_dict(self):
         return {
@@ -5646,16 +6983,16 @@ class SendBotRequestedPeerRequest(TLRequest):
             'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
             'msg_id': self.msg_id,
             'button_id': self.button_id,
-            'requested_peer': self.requested_peer.to_dict() if isinstance(self.requested_peer, TLObject) else self.requested_peer
+            'requested_peers': [] if self.requested_peers is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.requested_peers]
         }
 
     def _bytes(self):
         return b''.join((
-            b'\x1b\xd08\xfe',
+            b'`\xd0\xb2\x91',
             self.peer._bytes(),
             struct.pack('<i', self.msg_id),
             struct.pack('<i', self.button_id),
-            self.requested_peer._bytes(),
+            b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.requested_peers)),b''.join(x._bytes() for x in self.requested_peers),
         ))
 
     @classmethod
@@ -5663,8 +7000,13 @@ class SendBotRequestedPeerRequest(TLRequest):
         _peer = reader.tgread_object()
         _msg_id = reader.read_int()
         _button_id = reader.read_int()
-        _requested_peer = reader.tgread_object()
-        return cls(peer=_peer, msg_id=_msg_id, button_id=_button_id, requested_peer=_requested_peer)
+        reader.read_int()
+        _requested_peers = []
+        for _ in range(reader.read_int()):
+            _x = reader.tgread_object()
+            _requested_peers.append(_x)
+
+        return cls(peer=_peer, msg_id=_msg_id, button_id=_button_id, requested_peers=_requested_peers)
 
 
 class SendEncryptedRequest(TLRequest):
@@ -5792,10 +7134,10 @@ class SendEncryptedServiceRequest(TLRequest):
 
 
 class SendInlineBotResultRequest(TLRequest):
-    CONSTRUCTOR_ID = 0xf7bc68ba
+    CONSTRUCTOR_ID = 0xc0cf7646
     SUBCLASS_OF_ID = 0x8af52aac
 
-    def __init__(self, peer: 'TypeInputPeer', query_id: int, id: str, silent: Optional[bool]=None, background: Optional[bool]=None, clear_draft: Optional[bool]=None, hide_via: Optional[bool]=None, reply_to: Optional['TypeInputReplyTo']=None, random_id: int=None, schedule_date: Optional[datetime]=None, send_as: Optional['TypeInputPeer']=None):
+    def __init__(self, peer: 'TypeInputPeer', query_id: int, id: str, silent: Optional[bool]=None, background: Optional[bool]=None, clear_draft: Optional[bool]=None, hide_via: Optional[bool]=None, reply_to: Optional['TypeInputReplyTo']=None, random_id: int=None, schedule_date: Optional[datetime]=None, send_as: Optional['TypeInputPeer']=None, quick_reply_shortcut: Optional['TypeInputQuickReplyShortcut']=None, allow_paid_stars: Optional[int]=None):
         """
         :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
         """
@@ -5810,6 +7152,8 @@ class SendInlineBotResultRequest(TLRequest):
         self.random_id = random_id if random_id is not None else int.from_bytes(os.urandom(8), 'big', signed=True)
         self.schedule_date = schedule_date
         self.send_as = send_as
+        self.quick_reply_shortcut = quick_reply_shortcut
+        self.allow_paid_stars = allow_paid_stars
 
     async def resolve(self, client, utils):
         self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
@@ -5829,13 +7173,15 @@ class SendInlineBotResultRequest(TLRequest):
             'reply_to': self.reply_to.to_dict() if isinstance(self.reply_to, TLObject) else self.reply_to,
             'random_id': self.random_id,
             'schedule_date': self.schedule_date,
-            'send_as': self.send_as.to_dict() if isinstance(self.send_as, TLObject) else self.send_as
+            'send_as': self.send_as.to_dict() if isinstance(self.send_as, TLObject) else self.send_as,
+            'quick_reply_shortcut': self.quick_reply_shortcut.to_dict() if isinstance(self.quick_reply_shortcut, TLObject) else self.quick_reply_shortcut,
+            'allow_paid_stars': self.allow_paid_stars
         }
 
     def _bytes(self):
         return b''.join((
-            b'\xbah\xbc\xf7',
-            struct.pack('<I', (0 if self.silent is None or self.silent is False else 32) | (0 if self.background is None or self.background is False else 64) | (0 if self.clear_draft is None or self.clear_draft is False else 128) | (0 if self.hide_via is None or self.hide_via is False else 2048) | (0 if self.reply_to is None or self.reply_to is False else 1) | (0 if self.schedule_date is None or self.schedule_date is False else 1024) | (0 if self.send_as is None or self.send_as is False else 8192)),
+            b'Fv\xcf\xc0',
+            struct.pack('<I', (0 if self.silent is None or self.silent is False else 32) | (0 if self.background is None or self.background is False else 64) | (0 if self.clear_draft is None or self.clear_draft is False else 128) | (0 if self.hide_via is None or self.hide_via is False else 2048) | (0 if self.reply_to is None or self.reply_to is False else 1) | (0 if self.schedule_date is None or self.schedule_date is False else 1024) | (0 if self.send_as is None or self.send_as is False else 8192) | (0 if self.quick_reply_shortcut is None or self.quick_reply_shortcut is False else 131072) | (0 if self.allow_paid_stars is None or self.allow_paid_stars is False else 2097152)),
             self.peer._bytes(),
             b'' if self.reply_to is None or self.reply_to is False else (self.reply_to._bytes()),
             struct.pack('<q', self.random_id),
@@ -5843,6 +7189,8 @@ class SendInlineBotResultRequest(TLRequest):
             self.serialize_bytes(self.id),
             b'' if self.schedule_date is None or self.schedule_date is False else (self.serialize_datetime(self.schedule_date)),
             b'' if self.send_as is None or self.send_as is False else (self.send_as._bytes()),
+            b'' if self.quick_reply_shortcut is None or self.quick_reply_shortcut is False else (self.quick_reply_shortcut._bytes()),
+            b'' if self.allow_paid_stars is None or self.allow_paid_stars is False else (struct.pack('<q', self.allow_paid_stars)),
         ))
 
     @classmethod
@@ -5869,14 +7217,22 @@ class SendInlineBotResultRequest(TLRequest):
             _send_as = reader.tgread_object()
         else:
             _send_as = None
-        return cls(peer=_peer, query_id=_query_id, id=_id, silent=_silent, background=_background, clear_draft=_clear_draft, hide_via=_hide_via, reply_to=_reply_to, random_id=_random_id, schedule_date=_schedule_date, send_as=_send_as)
+        if flags & 131072:
+            _quick_reply_shortcut = reader.tgread_object()
+        else:
+            _quick_reply_shortcut = None
+        if flags & 2097152:
+            _allow_paid_stars = reader.read_long()
+        else:
+            _allow_paid_stars = None
+        return cls(peer=_peer, query_id=_query_id, id=_id, silent=_silent, background=_background, clear_draft=_clear_draft, hide_via=_hide_via, reply_to=_reply_to, random_id=_random_id, schedule_date=_schedule_date, send_as=_send_as, quick_reply_shortcut=_quick_reply_shortcut, allow_paid_stars=_allow_paid_stars)
 
 
 class SendMediaRequest(TLRequest):
-    CONSTRUCTOR_ID = 0x72ccc23d
+    CONSTRUCTOR_ID = 0xa550cd78
     SUBCLASS_OF_ID = 0x8af52aac
 
-    def __init__(self, peer: 'TypeInputPeer', media: 'TypeInputMedia', message: str, silent: Optional[bool]=None, background: Optional[bool]=None, clear_draft: Optional[bool]=None, noforwards: Optional[bool]=None, update_stickersets_order: Optional[bool]=None, reply_to: Optional['TypeInputReplyTo']=None, random_id: int=None, reply_markup: Optional['TypeReplyMarkup']=None, entities: Optional[List['TypeMessageEntity']]=None, schedule_date: Optional[datetime]=None, send_as: Optional['TypeInputPeer']=None):
+    def __init__(self, peer: 'TypeInputPeer', media: 'TypeInputMedia', message: str, silent: Optional[bool]=None, background: Optional[bool]=None, clear_draft: Optional[bool]=None, noforwards: Optional[bool]=None, update_stickersets_order: Optional[bool]=None, invert_media: Optional[bool]=None, allow_paid_floodskip: Optional[bool]=None, reply_to: Optional['TypeInputReplyTo']=None, random_id: int=None, reply_markup: Optional['TypeReplyMarkup']=None, entities: Optional[List['TypeMessageEntity']]=None, schedule_date: Optional[datetime]=None, send_as: Optional['TypeInputPeer']=None, quick_reply_shortcut: Optional['TypeInputQuickReplyShortcut']=None, effect: Optional[int]=None, allow_paid_stars: Optional[int]=None):
         """
         :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
         """
@@ -5888,12 +7244,17 @@ class SendMediaRequest(TLRequest):
         self.clear_draft = clear_draft
         self.noforwards = noforwards
         self.update_stickersets_order = update_stickersets_order
+        self.invert_media = invert_media
+        self.allow_paid_floodskip = allow_paid_floodskip
         self.reply_to = reply_to
         self.random_id = random_id if random_id is not None else int.from_bytes(os.urandom(8), 'big', signed=True)
         self.reply_markup = reply_markup
         self.entities = entities
         self.schedule_date = schedule_date
         self.send_as = send_as
+        self.quick_reply_shortcut = quick_reply_shortcut
+        self.effect = effect
+        self.allow_paid_stars = allow_paid_stars
 
     async def resolve(self, client, utils):
         self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
@@ -5912,18 +7273,23 @@ class SendMediaRequest(TLRequest):
             'clear_draft': self.clear_draft,
             'noforwards': self.noforwards,
             'update_stickersets_order': self.update_stickersets_order,
+            'invert_media': self.invert_media,
+            'allow_paid_floodskip': self.allow_paid_floodskip,
             'reply_to': self.reply_to.to_dict() if isinstance(self.reply_to, TLObject) else self.reply_to,
             'random_id': self.random_id,
             'reply_markup': self.reply_markup.to_dict() if isinstance(self.reply_markup, TLObject) else self.reply_markup,
             'entities': [] if self.entities is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.entities],
             'schedule_date': self.schedule_date,
-            'send_as': self.send_as.to_dict() if isinstance(self.send_as, TLObject) else self.send_as
+            'send_as': self.send_as.to_dict() if isinstance(self.send_as, TLObject) else self.send_as,
+            'quick_reply_shortcut': self.quick_reply_shortcut.to_dict() if isinstance(self.quick_reply_shortcut, TLObject) else self.quick_reply_shortcut,
+            'effect': self.effect,
+            'allow_paid_stars': self.allow_paid_stars
         }
 
     def _bytes(self):
         return b''.join((
-            b'=\xc2\xccr',
-            struct.pack('<I', (0 if self.silent is None or self.silent is False else 32) | (0 if self.background is None or self.background is False else 64) | (0 if self.clear_draft is None or self.clear_draft is False else 128) | (0 if self.noforwards is None or self.noforwards is False else 16384) | (0 if self.update_stickersets_order is None or self.update_stickersets_order is False else 32768) | (0 if self.reply_to is None or self.reply_to is False else 1) | (0 if self.reply_markup is None or self.reply_markup is False else 4) | (0 if self.entities is None or self.entities is False else 8) | (0 if self.schedule_date is None or self.schedule_date is False else 1024) | (0 if self.send_as is None or self.send_as is False else 8192)),
+            b'x\xcdP\xa5',
+            struct.pack('<I', (0 if self.silent is None or self.silent is False else 32) | (0 if self.background is None or self.background is False else 64) | (0 if self.clear_draft is None or self.clear_draft is False else 128) | (0 if self.noforwards is None or self.noforwards is False else 16384) | (0 if self.update_stickersets_order is None or self.update_stickersets_order is False else 32768) | (0 if self.invert_media is None or self.invert_media is False else 65536) | (0 if self.allow_paid_floodskip is None or self.allow_paid_floodskip is False else 524288) | (0 if self.reply_to is None or self.reply_to is False else 1) | (0 if self.reply_markup is None or self.reply_markup is False else 4) | (0 if self.entities is None or self.entities is False else 8) | (0 if self.schedule_date is None or self.schedule_date is False else 1024) | (0 if self.send_as is None or self.send_as is False else 8192) | (0 if self.quick_reply_shortcut is None or self.quick_reply_shortcut is False else 131072) | (0 if self.effect is None or self.effect is False else 262144) | (0 if self.allow_paid_stars is None or self.allow_paid_stars is False else 2097152)),
             self.peer._bytes(),
             b'' if self.reply_to is None or self.reply_to is False else (self.reply_to._bytes()),
             self.media._bytes(),
@@ -5933,6 +7299,9 @@ class SendMediaRequest(TLRequest):
             b'' if self.entities is None or self.entities is False else b''.join((b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.entities)),b''.join(x._bytes() for x in self.entities))),
             b'' if self.schedule_date is None or self.schedule_date is False else (self.serialize_datetime(self.schedule_date)),
             b'' if self.send_as is None or self.send_as is False else (self.send_as._bytes()),
+            b'' if self.quick_reply_shortcut is None or self.quick_reply_shortcut is False else (self.quick_reply_shortcut._bytes()),
+            b'' if self.effect is None or self.effect is False else (struct.pack('<q', self.effect)),
+            b'' if self.allow_paid_stars is None or self.allow_paid_stars is False else (struct.pack('<q', self.allow_paid_stars)),
         ))
 
     @classmethod
@@ -5944,6 +7313,8 @@ class SendMediaRequest(TLRequest):
         _clear_draft = bool(flags & 128)
         _noforwards = bool(flags & 16384)
         _update_stickersets_order = bool(flags & 32768)
+        _invert_media = bool(flags & 65536)
+        _allow_paid_floodskip = bool(flags & 524288)
         _peer = reader.tgread_object()
         if flags & 1:
             _reply_to = reader.tgread_object()
@@ -5973,14 +7344,26 @@ class SendMediaRequest(TLRequest):
             _send_as = reader.tgread_object()
         else:
             _send_as = None
-        return cls(peer=_peer, media=_media, message=_message, silent=_silent, background=_background, clear_draft=_clear_draft, noforwards=_noforwards, update_stickersets_order=_update_stickersets_order, reply_to=_reply_to, random_id=_random_id, reply_markup=_reply_markup, entities=_entities, schedule_date=_schedule_date, send_as=_send_as)
+        if flags & 131072:
+            _quick_reply_shortcut = reader.tgread_object()
+        else:
+            _quick_reply_shortcut = None
+        if flags & 262144:
+            _effect = reader.read_long()
+        else:
+            _effect = None
+        if flags & 2097152:
+            _allow_paid_stars = reader.read_long()
+        else:
+            _allow_paid_stars = None
+        return cls(peer=_peer, media=_media, message=_message, silent=_silent, background=_background, clear_draft=_clear_draft, noforwards=_noforwards, update_stickersets_order=_update_stickersets_order, invert_media=_invert_media, allow_paid_floodskip=_allow_paid_floodskip, reply_to=_reply_to, random_id=_random_id, reply_markup=_reply_markup, entities=_entities, schedule_date=_schedule_date, send_as=_send_as, quick_reply_shortcut=_quick_reply_shortcut, effect=_effect, allow_paid_stars=_allow_paid_stars)
 
 
 class SendMessageRequest(TLRequest):
-    CONSTRUCTOR_ID = 0x280d096f
+    CONSTRUCTOR_ID = 0xfbf2340a
     SUBCLASS_OF_ID = 0x8af52aac
 
-    def __init__(self, peer: 'TypeInputPeer', message: str, no_webpage: Optional[bool]=None, silent: Optional[bool]=None, background: Optional[bool]=None, clear_draft: Optional[bool]=None, noforwards: Optional[bool]=None, update_stickersets_order: Optional[bool]=None, reply_to: Optional['TypeInputReplyTo']=None, random_id: int=None, reply_markup: Optional['TypeReplyMarkup']=None, entities: Optional[List['TypeMessageEntity']]=None, schedule_date: Optional[datetime]=None, send_as: Optional['TypeInputPeer']=None):
+    def __init__(self, peer: 'TypeInputPeer', message: str, no_webpage: Optional[bool]=None, silent: Optional[bool]=None, background: Optional[bool]=None, clear_draft: Optional[bool]=None, noforwards: Optional[bool]=None, update_stickersets_order: Optional[bool]=None, invert_media: Optional[bool]=None, allow_paid_floodskip: Optional[bool]=None, reply_to: Optional['TypeInputReplyTo']=None, random_id: int=None, reply_markup: Optional['TypeReplyMarkup']=None, entities: Optional[List['TypeMessageEntity']]=None, schedule_date: Optional[datetime]=None, send_as: Optional['TypeInputPeer']=None, quick_reply_shortcut: Optional['TypeInputQuickReplyShortcut']=None, effect: Optional[int]=None, allow_paid_stars: Optional[int]=None):
         """
         :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
         """
@@ -5992,12 +7375,17 @@ class SendMessageRequest(TLRequest):
         self.clear_draft = clear_draft
         self.noforwards = noforwards
         self.update_stickersets_order = update_stickersets_order
+        self.invert_media = invert_media
+        self.allow_paid_floodskip = allow_paid_floodskip
         self.reply_to = reply_to
         self.random_id = random_id if random_id is not None else int.from_bytes(os.urandom(8), 'big', signed=True)
         self.reply_markup = reply_markup
         self.entities = entities
         self.schedule_date = schedule_date
         self.send_as = send_as
+        self.quick_reply_shortcut = quick_reply_shortcut
+        self.effect = effect
+        self.allow_paid_stars = allow_paid_stars
 
     async def resolve(self, client, utils):
         self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
@@ -6015,18 +7403,23 @@ class SendMessageRequest(TLRequest):
             'clear_draft': self.clear_draft,
             'noforwards': self.noforwards,
             'update_stickersets_order': self.update_stickersets_order,
+            'invert_media': self.invert_media,
+            'allow_paid_floodskip': self.allow_paid_floodskip,
             'reply_to': self.reply_to.to_dict() if isinstance(self.reply_to, TLObject) else self.reply_to,
             'random_id': self.random_id,
             'reply_markup': self.reply_markup.to_dict() if isinstance(self.reply_markup, TLObject) else self.reply_markup,
             'entities': [] if self.entities is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.entities],
             'schedule_date': self.schedule_date,
-            'send_as': self.send_as.to_dict() if isinstance(self.send_as, TLObject) else self.send_as
+            'send_as': self.send_as.to_dict() if isinstance(self.send_as, TLObject) else self.send_as,
+            'quick_reply_shortcut': self.quick_reply_shortcut.to_dict() if isinstance(self.quick_reply_shortcut, TLObject) else self.quick_reply_shortcut,
+            'effect': self.effect,
+            'allow_paid_stars': self.allow_paid_stars
         }
 
     def _bytes(self):
         return b''.join((
-            b'o\t\r(',
-            struct.pack('<I', (0 if self.no_webpage is None or self.no_webpage is False else 2) | (0 if self.silent is None or self.silent is False else 32) | (0 if self.background is None or self.background is False else 64) | (0 if self.clear_draft is None or self.clear_draft is False else 128) | (0 if self.noforwards is None or self.noforwards is False else 16384) | (0 if self.update_stickersets_order is None or self.update_stickersets_order is False else 32768) | (0 if self.reply_to is None or self.reply_to is False else 1) | (0 if self.reply_markup is None or self.reply_markup is False else 4) | (0 if self.entities is None or self.entities is False else 8) | (0 if self.schedule_date is None or self.schedule_date is False else 1024) | (0 if self.send_as is None or self.send_as is False else 8192)),
+            b'\n4\xf2\xfb',
+            struct.pack('<I', (0 if self.no_webpage is None or self.no_webpage is False else 2) | (0 if self.silent is None or self.silent is False else 32) | (0 if self.background is None or self.background is False else 64) | (0 if self.clear_draft is None or self.clear_draft is False else 128) | (0 if self.noforwards is None or self.noforwards is False else 16384) | (0 if self.update_stickersets_order is None or self.update_stickersets_order is False else 32768) | (0 if self.invert_media is None or self.invert_media is False else 65536) | (0 if self.allow_paid_floodskip is None or self.allow_paid_floodskip is False else 524288) | (0 if self.reply_to is None or self.reply_to is False else 1) | (0 if self.reply_markup is None or self.reply_markup is False else 4) | (0 if self.entities is None or self.entities is False else 8) | (0 if self.schedule_date is None or self.schedule_date is False else 1024) | (0 if self.send_as is None or self.send_as is False else 8192) | (0 if self.quick_reply_shortcut is None or self.quick_reply_shortcut is False else 131072) | (0 if self.effect is None or self.effect is False else 262144) | (0 if self.allow_paid_stars is None or self.allow_paid_stars is False else 2097152)),
             self.peer._bytes(),
             b'' if self.reply_to is None or self.reply_to is False else (self.reply_to._bytes()),
             self.serialize_bytes(self.message),
@@ -6035,6 +7428,9 @@ class SendMessageRequest(TLRequest):
             b'' if self.entities is None or self.entities is False else b''.join((b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.entities)),b''.join(x._bytes() for x in self.entities))),
             b'' if self.schedule_date is None or self.schedule_date is False else (self.serialize_datetime(self.schedule_date)),
             b'' if self.send_as is None or self.send_as is False else (self.send_as._bytes()),
+            b'' if self.quick_reply_shortcut is None or self.quick_reply_shortcut is False else (self.quick_reply_shortcut._bytes()),
+            b'' if self.effect is None or self.effect is False else (struct.pack('<q', self.effect)),
+            b'' if self.allow_paid_stars is None or self.allow_paid_stars is False else (struct.pack('<q', self.allow_paid_stars)),
         ))
 
     @classmethod
@@ -6047,6 +7443,8 @@ class SendMessageRequest(TLRequest):
         _clear_draft = bool(flags & 128)
         _noforwards = bool(flags & 16384)
         _update_stickersets_order = bool(flags & 32768)
+        _invert_media = bool(flags & 65536)
+        _allow_paid_floodskip = bool(flags & 524288)
         _peer = reader.tgread_object()
         if flags & 1:
             _reply_to = reader.tgread_object()
@@ -6075,14 +7473,26 @@ class SendMessageRequest(TLRequest):
             _send_as = reader.tgread_object()
         else:
             _send_as = None
-        return cls(peer=_peer, message=_message, no_webpage=_no_webpage, silent=_silent, background=_background, clear_draft=_clear_draft, noforwards=_noforwards, update_stickersets_order=_update_stickersets_order, reply_to=_reply_to, random_id=_random_id, reply_markup=_reply_markup, entities=_entities, schedule_date=_schedule_date, send_as=_send_as)
+        if flags & 131072:
+            _quick_reply_shortcut = reader.tgread_object()
+        else:
+            _quick_reply_shortcut = None
+        if flags & 262144:
+            _effect = reader.read_long()
+        else:
+            _effect = None
+        if flags & 2097152:
+            _allow_paid_stars = reader.read_long()
+        else:
+            _allow_paid_stars = None
+        return cls(peer=_peer, message=_message, no_webpage=_no_webpage, silent=_silent, background=_background, clear_draft=_clear_draft, noforwards=_noforwards, update_stickersets_order=_update_stickersets_order, invert_media=_invert_media, allow_paid_floodskip=_allow_paid_floodskip, reply_to=_reply_to, random_id=_random_id, reply_markup=_reply_markup, entities=_entities, schedule_date=_schedule_date, send_as=_send_as, quick_reply_shortcut=_quick_reply_shortcut, effect=_effect, allow_paid_stars=_allow_paid_stars)
 
 
 class SendMultiMediaRequest(TLRequest):
-    CONSTRUCTOR_ID = 0x456e8987
+    CONSTRUCTOR_ID = 0x1bf89d74
     SUBCLASS_OF_ID = 0x8af52aac
 
-    def __init__(self, peer: 'TypeInputPeer', multi_media: List['TypeInputSingleMedia'], silent: Optional[bool]=None, background: Optional[bool]=None, clear_draft: Optional[bool]=None, noforwards: Optional[bool]=None, update_stickersets_order: Optional[bool]=None, reply_to: Optional['TypeInputReplyTo']=None, schedule_date: Optional[datetime]=None, send_as: Optional['TypeInputPeer']=None):
+    def __init__(self, peer: 'TypeInputPeer', multi_media: List['TypeInputSingleMedia'], silent: Optional[bool]=None, background: Optional[bool]=None, clear_draft: Optional[bool]=None, noforwards: Optional[bool]=None, update_stickersets_order: Optional[bool]=None, invert_media: Optional[bool]=None, allow_paid_floodskip: Optional[bool]=None, reply_to: Optional['TypeInputReplyTo']=None, schedule_date: Optional[datetime]=None, send_as: Optional['TypeInputPeer']=None, quick_reply_shortcut: Optional['TypeInputQuickReplyShortcut']=None, effect: Optional[int]=None, allow_paid_stars: Optional[int]=None):
         """
         :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
         """
@@ -6093,9 +7503,14 @@ class SendMultiMediaRequest(TLRequest):
         self.clear_draft = clear_draft
         self.noforwards = noforwards
         self.update_stickersets_order = update_stickersets_order
+        self.invert_media = invert_media
+        self.allow_paid_floodskip = allow_paid_floodskip
         self.reply_to = reply_to
         self.schedule_date = schedule_date
         self.send_as = send_as
+        self.quick_reply_shortcut = quick_reply_shortcut
+        self.effect = effect
+        self.allow_paid_stars = allow_paid_stars
 
     async def resolve(self, client, utils):
         self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
@@ -6112,20 +7527,28 @@ class SendMultiMediaRequest(TLRequest):
             'clear_draft': self.clear_draft,
             'noforwards': self.noforwards,
             'update_stickersets_order': self.update_stickersets_order,
+            'invert_media': self.invert_media,
+            'allow_paid_floodskip': self.allow_paid_floodskip,
             'reply_to': self.reply_to.to_dict() if isinstance(self.reply_to, TLObject) else self.reply_to,
             'schedule_date': self.schedule_date,
-            'send_as': self.send_as.to_dict() if isinstance(self.send_as, TLObject) else self.send_as
+            'send_as': self.send_as.to_dict() if isinstance(self.send_as, TLObject) else self.send_as,
+            'quick_reply_shortcut': self.quick_reply_shortcut.to_dict() if isinstance(self.quick_reply_shortcut, TLObject) else self.quick_reply_shortcut,
+            'effect': self.effect,
+            'allow_paid_stars': self.allow_paid_stars
         }
 
     def _bytes(self):
         return b''.join((
-            b'\x87\x89nE',
-            struct.pack('<I', (0 if self.silent is None or self.silent is False else 32) | (0 if self.background is None or self.background is False else 64) | (0 if self.clear_draft is None or self.clear_draft is False else 128) | (0 if self.noforwards is None or self.noforwards is False else 16384) | (0 if self.update_stickersets_order is None or self.update_stickersets_order is False else 32768) | (0 if self.reply_to is None or self.reply_to is False else 1) | (0 if self.schedule_date is None or self.schedule_date is False else 1024) | (0 if self.send_as is None or self.send_as is False else 8192)),
+            b't\x9d\xf8\x1b',
+            struct.pack('<I', (0 if self.silent is None or self.silent is False else 32) | (0 if self.background is None or self.background is False else 64) | (0 if self.clear_draft is None or self.clear_draft is False else 128) | (0 if self.noforwards is None or self.noforwards is False else 16384) | (0 if self.update_stickersets_order is None or self.update_stickersets_order is False else 32768) | (0 if self.invert_media is None or self.invert_media is False else 65536) | (0 if self.allow_paid_floodskip is None or self.allow_paid_floodskip is False else 524288) | (0 if self.reply_to is None or self.reply_to is False else 1) | (0 if self.schedule_date is None or self.schedule_date is False else 1024) | (0 if self.send_as is None or self.send_as is False else 8192) | (0 if self.quick_reply_shortcut is None or self.quick_reply_shortcut is False else 131072) | (0 if self.effect is None or self.effect is False else 262144) | (0 if self.allow_paid_stars is None or self.allow_paid_stars is False else 2097152)),
             self.peer._bytes(),
             b'' if self.reply_to is None or self.reply_to is False else (self.reply_to._bytes()),
             b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.multi_media)),b''.join(x._bytes() for x in self.multi_media),
             b'' if self.schedule_date is None or self.schedule_date is False else (self.serialize_datetime(self.schedule_date)),
             b'' if self.send_as is None or self.send_as is False else (self.send_as._bytes()),
+            b'' if self.quick_reply_shortcut is None or self.quick_reply_shortcut is False else (self.quick_reply_shortcut._bytes()),
+            b'' if self.effect is None or self.effect is False else (struct.pack('<q', self.effect)),
+            b'' if self.allow_paid_stars is None or self.allow_paid_stars is False else (struct.pack('<q', self.allow_paid_stars)),
         ))
 
     @classmethod
@@ -6137,6 +7560,8 @@ class SendMultiMediaRequest(TLRequest):
         _clear_draft = bool(flags & 128)
         _noforwards = bool(flags & 16384)
         _update_stickersets_order = bool(flags & 32768)
+        _invert_media = bool(flags & 65536)
+        _allow_paid_floodskip = bool(flags & 524288)
         _peer = reader.tgread_object()
         if flags & 1:
             _reply_to = reader.tgread_object()
@@ -6156,7 +7581,125 @@ class SendMultiMediaRequest(TLRequest):
             _send_as = reader.tgread_object()
         else:
             _send_as = None
-        return cls(peer=_peer, multi_media=_multi_media, silent=_silent, background=_background, clear_draft=_clear_draft, noforwards=_noforwards, update_stickersets_order=_update_stickersets_order, reply_to=_reply_to, schedule_date=_schedule_date, send_as=_send_as)
+        if flags & 131072:
+            _quick_reply_shortcut = reader.tgread_object()
+        else:
+            _quick_reply_shortcut = None
+        if flags & 262144:
+            _effect = reader.read_long()
+        else:
+            _effect = None
+        if flags & 2097152:
+            _allow_paid_stars = reader.read_long()
+        else:
+            _allow_paid_stars = None
+        return cls(peer=_peer, multi_media=_multi_media, silent=_silent, background=_background, clear_draft=_clear_draft, noforwards=_noforwards, update_stickersets_order=_update_stickersets_order, invert_media=_invert_media, allow_paid_floodskip=_allow_paid_floodskip, reply_to=_reply_to, schedule_date=_schedule_date, send_as=_send_as, quick_reply_shortcut=_quick_reply_shortcut, effect=_effect, allow_paid_stars=_allow_paid_stars)
+
+
+class SendPaidReactionRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x58bbcb50
+    SUBCLASS_OF_ID = 0x8af52aac
+
+    def __init__(self, peer: 'TypeInputPeer', msg_id: int, count: int, random_id: int=None, private: Optional['TypePaidReactionPrivacy']=None):
+        """
+        :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
+        """
+        self.peer = peer
+        self.msg_id = msg_id
+        self.count = count
+        self.random_id = random_id if random_id is not None else int.from_bytes(os.urandom(8), 'big', signed=True)
+        self.private = private
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'SendPaidReactionRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'msg_id': self.msg_id,
+            'count': self.count,
+            'random_id': self.random_id,
+            'private': self.private.to_dict() if isinstance(self.private, TLObject) else self.private
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'P\xcb\xbbX',
+            struct.pack('<I', (0 if self.private is None or self.private is False else 1)),
+            self.peer._bytes(),
+            struct.pack('<i', self.msg_id),
+            struct.pack('<i', self.count),
+            struct.pack('<q', self.random_id),
+            b'' if self.private is None or self.private is False else (self.private._bytes()),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _peer = reader.tgread_object()
+        _msg_id = reader.read_int()
+        _count = reader.read_int()
+        _random_id = reader.read_long()
+        if flags & 1:
+            _private = reader.tgread_object()
+        else:
+            _private = None
+        return cls(peer=_peer, msg_id=_msg_id, count=_count, random_id=_random_id, private=_private)
+
+
+class SendQuickReplyMessagesRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x6c750de1
+    SUBCLASS_OF_ID = 0x8af52aac
+
+    def __init__(self, peer: 'TypeInputPeer', shortcut_id: int, id: List[int], random_id: List[int]=None):
+        """
+        :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
+        """
+        self.peer = peer
+        self.shortcut_id = shortcut_id
+        self.id = id
+        self.random_id = random_id if random_id is not None else [int.from_bytes(os.urandom(8), 'big', signed=True) for _ in range(len(id))]
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'SendQuickReplyMessagesRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'shortcut_id': self.shortcut_id,
+            'id': [] if self.id is None else self.id[:],
+            'random_id': [] if self.random_id is None else self.random_id[:]
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xe1\rul',
+            self.peer._bytes(),
+            struct.pack('<i', self.shortcut_id),
+            b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.id)),b''.join(struct.pack('<i', x) for x in self.id),
+            b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.random_id)),b''.join(struct.pack('<q', x) for x in self.random_id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        _shortcut_id = reader.read_int()
+        reader.read_int()
+        _id = []
+        for _ in range(reader.read_int()):
+            _x = reader.read_int()
+            _id.append(_x)
+
+        reader.read_int()
+        _random_id = []
+        for _ in range(reader.read_int()):
+            _x = reader.read_long()
+            _random_id.append(_x)
+
+        return cls(peer=_peer, shortcut_id=_shortcut_id, id=_id, random_id=_random_id)
 
 
 class SendReactionRequest(TLRequest):
@@ -6557,15 +8100,17 @@ class SetBotShippingResultsRequest(TLRequest):
 
 
 class SetChatAvailableReactionsRequest(TLRequest):
-    CONSTRUCTOR_ID = 0xfeb16771
+    CONSTRUCTOR_ID = 0x864b2581
     SUBCLASS_OF_ID = 0x8af52aac
 
-    def __init__(self, peer: 'TypeInputPeer', available_reactions: 'TypeChatReactions'):
+    def __init__(self, peer: 'TypeInputPeer', available_reactions: 'TypeChatReactions', reactions_limit: Optional[int]=None, paid_enabled: Optional[bool]=None):
         """
         :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
         """
         self.peer = peer
         self.available_reactions = available_reactions
+        self.reactions_limit = reactions_limit
+        self.paid_enabled = paid_enabled
 
     async def resolve(self, client, utils):
         self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
@@ -6574,21 +8119,36 @@ class SetChatAvailableReactionsRequest(TLRequest):
         return {
             '_': 'SetChatAvailableReactionsRequest',
             'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
-            'available_reactions': self.available_reactions.to_dict() if isinstance(self.available_reactions, TLObject) else self.available_reactions
+            'available_reactions': self.available_reactions.to_dict() if isinstance(self.available_reactions, TLObject) else self.available_reactions,
+            'reactions_limit': self.reactions_limit,
+            'paid_enabled': self.paid_enabled
         }
 
     def _bytes(self):
         return b''.join((
-            b'qg\xb1\xfe',
+            b'\x81%K\x86',
+            struct.pack('<I', (0 if self.reactions_limit is None or self.reactions_limit is False else 1) | (0 if self.paid_enabled is None else 2)),
             self.peer._bytes(),
             self.available_reactions._bytes(),
+            b'' if self.reactions_limit is None or self.reactions_limit is False else (struct.pack('<i', self.reactions_limit)),
+            b'' if self.paid_enabled is None else (b'\xb5ur\x99' if self.paid_enabled else b'7\x97y\xbc'),
         ))
 
     @classmethod
     def from_reader(cls, reader):
+        flags = reader.read_int()
+
         _peer = reader.tgread_object()
         _available_reactions = reader.tgread_object()
-        return cls(peer=_peer, available_reactions=_available_reactions)
+        if flags & 1:
+            _reactions_limit = reader.read_int()
+        else:
+            _reactions_limit = None
+        if flags & 2:
+            _paid_enabled = reader.tgread_bool()
+        else:
+            _paid_enabled = None
+        return cls(peer=_peer, available_reactions=_available_reactions, reactions_limit=_reactions_limit, paid_enabled=_paid_enabled)
 
 
 class SetChatThemeRequest(TLRequest):
@@ -6630,11 +8190,13 @@ class SetChatWallPaperRequest(TLRequest):
     CONSTRUCTOR_ID = 0x8ffacae1
     SUBCLASS_OF_ID = 0x8af52aac
 
-    def __init__(self, peer: 'TypeInputPeer', wallpaper: Optional['TypeInputWallPaper']=None, settings: Optional['TypeWallPaperSettings']=None, id: Optional[int]=None):
+    def __init__(self, peer: 'TypeInputPeer', for_both: Optional[bool]=None, revert: Optional[bool]=None, wallpaper: Optional['TypeInputWallPaper']=None, settings: Optional['TypeWallPaperSettings']=None, id: Optional[int]=None):
         """
         :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
         """
         self.peer = peer
+        self.for_both = for_both
+        self.revert = revert
         self.wallpaper = wallpaper
         self.settings = settings
         self.id = id
@@ -6646,6 +8208,8 @@ class SetChatWallPaperRequest(TLRequest):
         return {
             '_': 'SetChatWallPaperRequest',
             'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'for_both': self.for_both,
+            'revert': self.revert,
             'wallpaper': self.wallpaper.to_dict() if isinstance(self.wallpaper, TLObject) else self.wallpaper,
             'settings': self.settings.to_dict() if isinstance(self.settings, TLObject) else self.settings,
             'id': self.id
@@ -6654,7 +8218,7 @@ class SetChatWallPaperRequest(TLRequest):
     def _bytes(self):
         return b''.join((
             b'\xe1\xca\xfa\x8f',
-            struct.pack('<I', (0 if self.wallpaper is None or self.wallpaper is False else 1) | (0 if self.settings is None or self.settings is False else 4) | (0 if self.id is None or self.id is False else 2)),
+            struct.pack('<I', (0 if self.for_both is None or self.for_both is False else 8) | (0 if self.revert is None or self.revert is False else 16) | (0 if self.wallpaper is None or self.wallpaper is False else 1) | (0 if self.settings is None or self.settings is False else 4) | (0 if self.id is None or self.id is False else 2)),
             self.peer._bytes(),
             b'' if self.wallpaper is None or self.wallpaper is False else (self.wallpaper._bytes()),
             b'' if self.settings is None or self.settings is False else (self.settings._bytes()),
@@ -6665,6 +8229,8 @@ class SetChatWallPaperRequest(TLRequest):
     def from_reader(cls, reader):
         flags = reader.read_int()
 
+        _for_both = bool(flags & 8)
+        _revert = bool(flags & 16)
         _peer = reader.tgread_object()
         if flags & 1:
             _wallpaper = reader.tgread_object()
@@ -6678,7 +8244,7 @@ class SetChatWallPaperRequest(TLRequest):
             _id = reader.read_int()
         else:
             _id = None
-        return cls(peer=_peer, wallpaper=_wallpaper, settings=_settings, id=_id)
+        return cls(peer=_peer, for_both=_for_both, revert=_revert, wallpaper=_wallpaper, settings=_settings, id=_id)
 
 
 class SetDefaultHistoryTTLRequest(TLRequest):
@@ -7141,6 +8707,34 @@ class ToggleBotInAttachMenuRequest(TLRequest):
         return cls(bot=_bot, enabled=_enabled, write_allowed=_write_allowed)
 
 
+class ToggleDialogFilterTagsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xfd2dda49
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, enabled: bool):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.enabled = enabled
+
+    def to_dict(self):
+        return {
+            '_': 'ToggleDialogFilterTagsRequest',
+            'enabled': self.enabled
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'I\xda-\xfd',
+            b'\xb5ur\x99' if self.enabled else b'7\x97y\xbc',
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _enabled = reader.tgread_bool()
+        return cls(enabled=_enabled)
+
+
 class ToggleDialogPinRequest(TLRequest):
     CONSTRUCTOR_ID = 0xa731e257
     SUBCLASS_OF_ID = 0xf5b399ac
@@ -7213,6 +8807,45 @@ class ToggleNoForwardsRequest(TLRequest):
         return cls(peer=_peer, enabled=_enabled)
 
 
+class TogglePaidReactionPrivacyRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x435885b5
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, peer: 'TypeInputPeer', msg_id: int, private: 'TypePaidReactionPrivacy'):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.peer = peer
+        self.msg_id = msg_id
+        self.private = private
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'TogglePaidReactionPrivacyRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'msg_id': self.msg_id,
+            'private': self.private.to_dict() if isinstance(self.private, TLObject) else self.private
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xb5\x85XC',
+            self.peer._bytes(),
+            struct.pack('<i', self.msg_id),
+            self.private._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        _msg_id = reader.read_int()
+        _private = reader.tgread_object()
+        return cls(peer=_peer, msg_id=_msg_id, private=_private)
+
+
 class TogglePeerTranslationsRequest(TLRequest):
     CONSTRUCTOR_ID = 0xe47cb579
     SUBCLASS_OF_ID = 0xf5b399ac
@@ -7248,6 +8881,43 @@ class TogglePeerTranslationsRequest(TLRequest):
         _disabled = bool(flags & 1)
         _peer = reader.tgread_object()
         return cls(peer=_peer, disabled=_disabled)
+
+
+class ToggleSavedDialogPinRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xac81bbde
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, peer: 'TypeInputDialogPeer', pinned: Optional[bool]=None):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.peer = peer
+        self.pinned = pinned
+
+    async def resolve(self, client, utils):
+        self.peer = await client._get_input_dialog(self.peer)
+
+    def to_dict(self):
+        return {
+            '_': 'ToggleSavedDialogPinRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'pinned': self.pinned
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xde\xbb\x81\xac',
+            struct.pack('<I', (0 if self.pinned is None or self.pinned is False else 1)),
+            self.peer._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _pinned = bool(flags & 1)
+        _peer = reader.tgread_object()
+        return cls(peer=_peer, pinned=_pinned)
 
 
 class ToggleStickerSetsRequest(TLRequest):
@@ -7584,6 +9254,44 @@ class UpdatePinnedMessageRequest(TLRequest):
         return cls(peer=_peer, id=_id, silent=_silent, unpin=_unpin, pm_oneside=_pm_oneside)
 
 
+class UpdateSavedReactionTagRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x60297dec
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, reaction: 'TypeReaction', title: Optional[str]=None):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.reaction = reaction
+        self.title = title
+
+    def to_dict(self):
+        return {
+            '_': 'UpdateSavedReactionTagRequest',
+            'reaction': self.reaction.to_dict() if isinstance(self.reaction, TLObject) else self.reaction,
+            'title': self.title
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xec})`',
+            struct.pack('<I', (0 if self.title is None or self.title is False else 1)),
+            self.reaction._bytes(),
+            b'' if self.title is None or self.title is False else (self.serialize_bytes(self.title)),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _reaction = reader.tgread_object()
+        if flags & 1:
+            _title = reader.tgread_string()
+        else:
+            _title = None
+        return cls(reaction=_reaction, title=_title)
+
+
 class UploadEncryptedFileRequest(TLRequest):
     CONSTRUCTOR_ID = 0x5057c497
     SUBCLASS_OF_ID = 0x842a67c0
@@ -7622,7 +9330,7 @@ class UploadImportedMediaRequest(TLRequest):
 
     def __init__(self, peer: 'TypeInputPeer', import_id: int, file_name: str, media: 'TypeInputMedia'):
         """
-        :returns MessageMedia: Instance of either MessageMediaEmpty, MessageMediaPhoto, MessageMediaGeo, MessageMediaContact, MessageMediaUnsupported, MessageMediaDocument, MessageMediaWebPage, MessageMediaVenue, MessageMediaGame, MessageMediaInvoice, MessageMediaGeoLive, MessageMediaPoll, MessageMediaDice, MessageMediaStory.
+        :returns MessageMedia: Instance of either MessageMediaEmpty, MessageMediaPhoto, MessageMediaGeo, MessageMediaContact, MessageMediaUnsupported, MessageMediaDocument, MessageMediaWebPage, MessageMediaVenue, MessageMediaGame, MessageMediaInvoice, MessageMediaGeoLive, MessageMediaPoll, MessageMediaDice, MessageMediaStory, MessageMediaGiveaway, MessageMediaGiveawayResults, MessageMediaPaidMedia.
         """
         self.peer = peer
         self.import_id = import_id
@@ -7661,15 +9369,16 @@ class UploadImportedMediaRequest(TLRequest):
 
 
 class UploadMediaRequest(TLRequest):
-    CONSTRUCTOR_ID = 0x519bc2b1
+    CONSTRUCTOR_ID = 0x14967978
     SUBCLASS_OF_ID = 0x476cbe32
 
-    def __init__(self, peer: 'TypeInputPeer', media: 'TypeInputMedia'):
+    def __init__(self, peer: 'TypeInputPeer', media: 'TypeInputMedia', business_connection_id: Optional[str]=None):
         """
-        :returns MessageMedia: Instance of either MessageMediaEmpty, MessageMediaPhoto, MessageMediaGeo, MessageMediaContact, MessageMediaUnsupported, MessageMediaDocument, MessageMediaWebPage, MessageMediaVenue, MessageMediaGame, MessageMediaInvoice, MessageMediaGeoLive, MessageMediaPoll, MessageMediaDice, MessageMediaStory.
+        :returns MessageMedia: Instance of either MessageMediaEmpty, MessageMediaPhoto, MessageMediaGeo, MessageMediaContact, MessageMediaUnsupported, MessageMediaDocument, MessageMediaWebPage, MessageMediaVenue, MessageMediaGame, MessageMediaInvoice, MessageMediaGeoLive, MessageMediaPoll, MessageMediaDice, MessageMediaStory, MessageMediaGiveaway, MessageMediaGiveawayResults, MessageMediaPaidMedia.
         """
         self.peer = peer
         self.media = media
+        self.business_connection_id = business_connection_id
 
     async def resolve(self, client, utils):
         self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
@@ -7679,19 +9388,56 @@ class UploadMediaRequest(TLRequest):
         return {
             '_': 'UploadMediaRequest',
             'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
-            'media': self.media.to_dict() if isinstance(self.media, TLObject) else self.media
+            'media': self.media.to_dict() if isinstance(self.media, TLObject) else self.media,
+            'business_connection_id': self.business_connection_id
         }
 
     def _bytes(self):
         return b''.join((
-            b'\xb1\xc2\x9bQ',
+            b'xy\x96\x14',
+            struct.pack('<I', (0 if self.business_connection_id is None or self.business_connection_id is False else 1)),
+            b'' if self.business_connection_id is None or self.business_connection_id is False else (self.serialize_bytes(self.business_connection_id)),
             self.peer._bytes(),
             self.media._bytes(),
         ))
 
     @classmethod
     def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        if flags & 1:
+            _business_connection_id = reader.tgread_string()
+        else:
+            _business_connection_id = None
         _peer = reader.tgread_object()
         _media = reader.tgread_object()
-        return cls(peer=_peer, media=_media)
+        return cls(peer=_peer, media=_media, business_connection_id=_business_connection_id)
+
+
+class ViewSponsoredMessageRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x269e3643
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, random_id: bytes=None):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.random_id = random_id if random_id is not None else int.from_bytes(os.urandom(4), 'big', signed=True)
+
+    def to_dict(self):
+        return {
+            '_': 'ViewSponsoredMessageRequest',
+            'random_id': self.random_id
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'C6\x9e&',
+            self.serialize_bytes(self.random_id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _random_id = reader.tgread_bytes()
+        return cls(random_id=_random_id)
 

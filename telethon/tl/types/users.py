@@ -54,3 +54,73 @@ class UserFull(TLObject):
 
         return cls(full_user=_full_user, chats=_chats, users=_users)
 
+
+class Users(TLObject):
+    CONSTRUCTOR_ID = 0x62d706b8
+    SUBCLASS_OF_ID = 0xf24bf0c0
+
+    def __init__(self, users: List['TypeUser']):
+        """
+        Constructor for users.Users: Instance of either Users, UsersSlice.
+        """
+        self.users = users
+
+    def to_dict(self):
+        return {
+            '_': 'Users',
+            'users': [] if self.users is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.users]
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xb8\x06\xd7b',
+            b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.users)),b''.join(x._bytes() for x in self.users),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        reader.read_int()
+        _users = []
+        for _ in range(reader.read_int()):
+            _x = reader.tgread_object()
+            _users.append(_x)
+
+        return cls(users=_users)
+
+
+class UsersSlice(TLObject):
+    CONSTRUCTOR_ID = 0x315a4974
+    SUBCLASS_OF_ID = 0xf24bf0c0
+
+    def __init__(self, count: int, users: List['TypeUser']):
+        """
+        Constructor for users.Users: Instance of either Users, UsersSlice.
+        """
+        self.count = count
+        self.users = users
+
+    def to_dict(self):
+        return {
+            '_': 'UsersSlice',
+            'count': self.count,
+            'users': [] if self.users is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.users]
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'tIZ1',
+            struct.pack('<i', self.count),
+            b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.users)),b''.join(x._bytes() for x in self.users),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _count = reader.read_int()
+        reader.read_int()
+        _users = []
+        for _ in range(reader.read_int()):
+            _x = reader.tgread_object()
+            _users.append(_x)
+
+        return cls(count=_count, users=_users)
+

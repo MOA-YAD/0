@@ -292,6 +292,25 @@ class ExportContactTokenRequest(TLRequest):
         return cls()
 
 
+class GetBirthdaysRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xdaeda864
+    SUBCLASS_OF_ID = 0xe7aabff
+
+    def to_dict(self):
+        return {
+            '_': 'GetBirthdaysRequest'
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'd\xa8\xed\xda',
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        return cls()
+
+
 class GetBlockedRequest(TLRequest):
     CONSTRUCTOR_ID = 0x9a868f80
     SUBCLASS_OF_ID = 0xffba4f4f
@@ -451,6 +470,34 @@ class GetSavedRequest(TLRequest):
         return cls()
 
 
+class GetSponsoredPeersRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xb6c8c393
+    SUBCLASS_OF_ID = 0xb45d5ccc
+
+    def __init__(self, q: str):
+        """
+        :returns contacts.SponsoredPeers: Instance of either SponsoredPeersEmpty, SponsoredPeers.
+        """
+        self.q = q
+
+    def to_dict(self):
+        return {
+            '_': 'GetSponsoredPeersRequest',
+            'q': self.q
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\x93\xc3\xc8\xb6',
+            self.serialize_bytes(self.q),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _q = reader.tgread_string()
+        return cls(q=_q)
+
+
 class GetStatusesRequest(TLRequest):
     CONSTRUCTOR_ID = 0xc4a353ee
     SUBCLASS_OF_ID = 0xdf815c90
@@ -474,7 +521,7 @@ class GetTopPeersRequest(TLRequest):
     CONSTRUCTOR_ID = 0x973478b6
     SUBCLASS_OF_ID = 0x9ee8bb88
 
-    def __init__(self, offset: int, limit: int, hash: int, correspondents: Optional[bool]=None, bots_pm: Optional[bool]=None, bots_inline: Optional[bool]=None, phone_calls: Optional[bool]=None, forward_users: Optional[bool]=None, forward_chats: Optional[bool]=None, groups: Optional[bool]=None, channels: Optional[bool]=None):
+    def __init__(self, offset: int, limit: int, hash: int, correspondents: Optional[bool]=None, bots_pm: Optional[bool]=None, bots_inline: Optional[bool]=None, phone_calls: Optional[bool]=None, forward_users: Optional[bool]=None, forward_chats: Optional[bool]=None, groups: Optional[bool]=None, channels: Optional[bool]=None, bots_app: Optional[bool]=None):
         """
         :returns contacts.TopPeers: Instance of either TopPeersNotModified, TopPeers, TopPeersDisabled.
         """
@@ -489,6 +536,7 @@ class GetTopPeersRequest(TLRequest):
         self.forward_chats = forward_chats
         self.groups = groups
         self.channels = channels
+        self.bots_app = bots_app
 
     def to_dict(self):
         return {
@@ -503,13 +551,14 @@ class GetTopPeersRequest(TLRequest):
             'forward_users': self.forward_users,
             'forward_chats': self.forward_chats,
             'groups': self.groups,
-            'channels': self.channels
+            'channels': self.channels,
+            'bots_app': self.bots_app
         }
 
     def _bytes(self):
         return b''.join((
             b'\xb6x4\x97',
-            struct.pack('<I', (0 if self.correspondents is None or self.correspondents is False else 1) | (0 if self.bots_pm is None or self.bots_pm is False else 2) | (0 if self.bots_inline is None or self.bots_inline is False else 4) | (0 if self.phone_calls is None or self.phone_calls is False else 8) | (0 if self.forward_users is None or self.forward_users is False else 16) | (0 if self.forward_chats is None or self.forward_chats is False else 32) | (0 if self.groups is None or self.groups is False else 1024) | (0 if self.channels is None or self.channels is False else 32768)),
+            struct.pack('<I', (0 if self.correspondents is None or self.correspondents is False else 1) | (0 if self.bots_pm is None or self.bots_pm is False else 2) | (0 if self.bots_inline is None or self.bots_inline is False else 4) | (0 if self.phone_calls is None or self.phone_calls is False else 8) | (0 if self.forward_users is None or self.forward_users is False else 16) | (0 if self.forward_chats is None or self.forward_chats is False else 32) | (0 if self.groups is None or self.groups is False else 1024) | (0 if self.channels is None or self.channels is False else 32768) | (0 if self.bots_app is None or self.bots_app is False else 65536)),
             struct.pack('<i', self.offset),
             struct.pack('<i', self.limit),
             struct.pack('<q', self.hash),
@@ -527,10 +576,11 @@ class GetTopPeersRequest(TLRequest):
         _forward_chats = bool(flags & 32)
         _groups = bool(flags & 1024)
         _channels = bool(flags & 32768)
+        _bots_app = bool(flags & 65536)
         _offset = reader.read_int()
         _limit = reader.read_int()
         _hash = reader.read_long()
-        return cls(offset=_offset, limit=_limit, hash=_hash, correspondents=_correspondents, bots_pm=_bots_pm, bots_inline=_bots_inline, phone_calls=_phone_calls, forward_users=_forward_users, forward_chats=_forward_chats, groups=_groups, channels=_channels)
+        return cls(offset=_offset, limit=_limit, hash=_hash, correspondents=_correspondents, bots_pm=_bots_pm, bots_inline=_bots_inline, phone_calls=_phone_calls, forward_users=_forward_users, forward_chats=_forward_chats, groups=_groups, channels=_channels, bots_app=_bots_app)
 
 
 class ImportContactTokenRequest(TLRequest):
@@ -677,31 +727,41 @@ class ResolvePhoneRequest(TLRequest):
 
 
 class ResolveUsernameRequest(TLRequest):
-    CONSTRUCTOR_ID = 0xf93ccba3
+    CONSTRUCTOR_ID = 0x725afbbc
     SUBCLASS_OF_ID = 0xf065b3a8
 
-    def __init__(self, username: str):
+    def __init__(self, username: str, referer: Optional[str]=None):
         """
         :returns contacts.ResolvedPeer: Instance of ResolvedPeer.
         """
         self.username = username
+        self.referer = referer
 
     def to_dict(self):
         return {
             '_': 'ResolveUsernameRequest',
-            'username': self.username
+            'username': self.username,
+            'referer': self.referer
         }
 
     def _bytes(self):
         return b''.join((
-            b'\xa3\xcb<\xf9',
+            b'\xbc\xfbZr',
+            struct.pack('<I', (0 if self.referer is None or self.referer is False else 1)),
             self.serialize_bytes(self.username),
+            b'' if self.referer is None or self.referer is False else (self.serialize_bytes(self.referer)),
         ))
 
     @classmethod
     def from_reader(cls, reader):
+        flags = reader.read_int()
+
         _username = reader.tgread_string()
-        return cls(username=_username)
+        if flags & 1:
+            _referer = reader.tgread_string()
+        else:
+            _referer = None
+        return cls(username=_username, referer=_referer)
 
 
 class SearchRequest(TLRequest):
@@ -784,41 +844,6 @@ class SetBlockedRequest(TLRequest):
 
         _limit = reader.read_int()
         return cls(id=_id, limit=_limit, my_stories_from=_my_stories_from)
-
-
-class ToggleStoriesHiddenRequest(TLRequest):
-    CONSTRUCTOR_ID = 0x753fb865
-    SUBCLASS_OF_ID = 0xf5b399ac
-
-    def __init__(self, id: 'TypeInputUser', hidden: bool):
-        """
-        :returns Bool: This type has no constructors.
-        """
-        self.id = id
-        self.hidden = hidden
-
-    async def resolve(self, client, utils):
-        self.id = utils.get_input_user(await client.get_input_entity(self.id))
-
-    def to_dict(self):
-        return {
-            '_': 'ToggleStoriesHiddenRequest',
-            'id': self.id.to_dict() if isinstance(self.id, TLObject) else self.id,
-            'hidden': self.hidden
-        }
-
-    def _bytes(self):
-        return b''.join((
-            b'e\xb8?u',
-            self.id._bytes(),
-            b'\xb5ur\x99' if self.hidden else b'7\x97y\xbc',
-        ))
-
-    @classmethod
-    def from_reader(cls, reader):
-        _id = reader.tgread_object()
-        _hidden = reader.tgread_bool()
-        return cls(id=_id, hidden=_hidden)
 
 
 class ToggleTopPeersRequest(TLRequest):

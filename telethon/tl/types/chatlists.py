@@ -5,15 +5,15 @@ import os
 import struct
 from datetime import datetime
 if TYPE_CHECKING:
-    from ...tl.types import TypeChat, TypeDialogFilter, TypeExportedChatlistInvite, TypePeer, TypeUser
+    from ...tl.types import TypeChat, TypeDialogFilter, TypeExportedChatlistInvite, TypePeer, TypeTextWithEntities, TypeUser
 
 
 
 class ChatlistInvite(TLObject):
-    CONSTRUCTOR_ID = 0x1dcd839d
+    CONSTRUCTOR_ID = 0xf10ece2f
     SUBCLASS_OF_ID = 0x41720e75
 
-    def __init__(self, title: str, peers: List['TypePeer'], chats: List['TypeChat'], users: List['TypeUser'], emoticon: Optional[str]=None):
+    def __init__(self, title: 'TypeTextWithEntities', peers: List['TypePeer'], chats: List['TypeChat'], users: List['TypeUser'], title_noanimate: Optional[bool]=None, emoticon: Optional[str]=None):
         """
         Constructor for chatlists.ChatlistInvite: Instance of either ChatlistInviteAlready, ChatlistInvite.
         """
@@ -21,23 +21,25 @@ class ChatlistInvite(TLObject):
         self.peers = peers
         self.chats = chats
         self.users = users
+        self.title_noanimate = title_noanimate
         self.emoticon = emoticon
 
     def to_dict(self):
         return {
             '_': 'ChatlistInvite',
-            'title': self.title,
+            'title': self.title.to_dict() if isinstance(self.title, TLObject) else self.title,
             'peers': [] if self.peers is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.peers],
             'chats': [] if self.chats is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.chats],
             'users': [] if self.users is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.users],
+            'title_noanimate': self.title_noanimate,
             'emoticon': self.emoticon
         }
 
     def _bytes(self):
         return b''.join((
-            b'\x9d\x83\xcd\x1d',
-            struct.pack('<I', (0 if self.emoticon is None or self.emoticon is False else 1)),
-            self.serialize_bytes(self.title),
+            b'/\xce\x0e\xf1',
+            struct.pack('<I', (0 if self.title_noanimate is None or self.title_noanimate is False else 2) | (0 if self.emoticon is None or self.emoticon is False else 1)),
+            self.title._bytes(),
             b'' if self.emoticon is None or self.emoticon is False else (self.serialize_bytes(self.emoticon)),
             b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.peers)),b''.join(x._bytes() for x in self.peers),
             b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.chats)),b''.join(x._bytes() for x in self.chats),
@@ -48,7 +50,8 @@ class ChatlistInvite(TLObject):
     def from_reader(cls, reader):
         flags = reader.read_int()
 
-        _title = reader.tgread_string()
+        _title_noanimate = bool(flags & 2)
+        _title = reader.tgread_object()
         if flags & 1:
             _emoticon = reader.tgread_string()
         else:
@@ -71,7 +74,7 @@ class ChatlistInvite(TLObject):
             _x = reader.tgread_object()
             _users.append(_x)
 
-        return cls(title=_title, peers=_peers, chats=_chats, users=_users, emoticon=_emoticon)
+        return cls(title=_title, peers=_peers, chats=_chats, users=_users, title_noanimate=_title_noanimate, emoticon=_emoticon)
 
 
 class ChatlistInviteAlready(TLObject):

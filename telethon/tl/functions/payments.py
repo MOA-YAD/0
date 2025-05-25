@@ -6,8 +6,36 @@ import os
 import struct
 from datetime import datetime
 if TYPE_CHECKING:
-    from ...tl.types import TypeDataJSON, TypeInputInvoice, TypeInputMedia, TypeInputPaymentCredentials, TypeInputPeer, TypeInputStorePaymentPurpose, TypePaymentRequestedInfo
+    from ...tl.types import TypeDataJSON, TypeInputCheckPasswordSRP, TypeInputInvoice, TypeInputMedia, TypeInputPaymentCredentials, TypeInputPeer, TypeInputSavedStarGift, TypeInputStarsTransaction, TypeInputStorePaymentPurpose, TypeInputUser, TypePaymentRequestedInfo
 
+
+
+class ApplyGiftCodeRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xf6e26854
+    SUBCLASS_OF_ID = 0x8af52aac
+
+    def __init__(self, slug: str):
+        """
+        :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
+        """
+        self.slug = slug
+
+    def to_dict(self):
+        return {
+            '_': 'ApplyGiftCodeRequest',
+            'slug': self.slug
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'Th\xe2\xf6',
+            self.serialize_bytes(self.slug),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _slug = reader.tgread_string()
+        return cls(slug=_slug)
 
 
 class AssignAppStoreTransactionRequest(TLRequest):
@@ -74,8 +102,49 @@ class AssignPlayMarketTransactionRequest(TLRequest):
         return cls(receipt=_receipt, purpose=_purpose)
 
 
-class CanPurchasePremiumRequest(TLRequest):
-    CONSTRUCTOR_ID = 0x9fc19eb6
+class BotCancelStarsSubscriptionRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x6dfa0622
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, user_id: 'TypeInputUser', charge_id: str, restore: Optional[bool]=None):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.user_id = user_id
+        self.charge_id = charge_id
+        self.restore = restore
+
+    async def resolve(self, client, utils):
+        self.user_id = utils.get_input_user(await client.get_input_entity(self.user_id))
+
+    def to_dict(self):
+        return {
+            '_': 'BotCancelStarsSubscriptionRequest',
+            'user_id': self.user_id.to_dict() if isinstance(self.user_id, TLObject) else self.user_id,
+            'charge_id': self.charge_id,
+            'restore': self.restore
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'"\x06\xfam',
+            struct.pack('<I', (0 if self.restore is None or self.restore is False else 1)),
+            self.user_id._bytes(),
+            self.serialize_bytes(self.charge_id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _restore = bool(flags & 1)
+        _user_id = reader.tgread_object()
+        _charge_id = reader.tgread_string()
+        return cls(user_id=_user_id, charge_id=_charge_id, restore=_restore)
+
+
+class CanPurchaseStoreRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x4fdc5ea7
     SUBCLASS_OF_ID = 0xf5b399ac
 
     def __init__(self, purpose: 'TypeInputStorePaymentPurpose'):
@@ -86,13 +155,13 @@ class CanPurchasePremiumRequest(TLRequest):
 
     def to_dict(self):
         return {
-            '_': 'CanPurchasePremiumRequest',
+            '_': 'CanPurchaseStoreRequest',
             'purpose': self.purpose.to_dict() if isinstance(self.purpose, TLObject) else self.purpose
         }
 
     def _bytes(self):
         return b''.join((
-            b'\xb6\x9e\xc1\x9f',
+            b'\xa7^\xdcO',
             self.purpose._bytes(),
         ))
 
@@ -100,6 +169,79 @@ class CanPurchasePremiumRequest(TLRequest):
     def from_reader(cls, reader):
         _purpose = reader.tgread_object()
         return cls(purpose=_purpose)
+
+
+class ChangeStarsSubscriptionRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xc7770878
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, peer: 'TypeInputPeer', subscription_id: str, canceled: Optional[bool]=None):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.peer = peer
+        self.subscription_id = subscription_id
+        self.canceled = canceled
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'ChangeStarsSubscriptionRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'subscription_id': self.subscription_id,
+            'canceled': self.canceled
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'x\x08w\xc7',
+            struct.pack('<I', (0 if self.canceled is None else 1)),
+            self.peer._bytes(),
+            self.serialize_bytes(self.subscription_id),
+            b'' if self.canceled is None else (b'\xb5ur\x99' if self.canceled else b'7\x97y\xbc'),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _peer = reader.tgread_object()
+        _subscription_id = reader.tgread_string()
+        if flags & 1:
+            _canceled = reader.tgread_bool()
+        else:
+            _canceled = None
+        return cls(peer=_peer, subscription_id=_subscription_id, canceled=_canceled)
+
+
+class CheckGiftCodeRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x8e51b4c1
+    SUBCLASS_OF_ID = 0x5b2997e8
+
+    def __init__(self, slug: str):
+        """
+        :returns payments.CheckedGiftCode: Instance of CheckedGiftCode.
+        """
+        self.slug = slug
+
+    def to_dict(self):
+        return {
+            '_': 'CheckGiftCodeRequest',
+            'slug': self.slug
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xc1\xb4Q\x8e',
+            self.serialize_bytes(self.slug),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _slug = reader.tgread_string()
+        return cls(slug=_slug)
 
 
 class ClearSavedInfoRequest(TLRequest):
@@ -135,6 +277,111 @@ class ClearSavedInfoRequest(TLRequest):
         return cls(credentials=_credentials, info=_info)
 
 
+class ConnectStarRefBotRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x7ed5348a
+    SUBCLASS_OF_ID = 0x235e1a67
+
+    def __init__(self, peer: 'TypeInputPeer', bot: 'TypeInputUser'):
+        """
+        :returns payments.ConnectedStarRefBots: Instance of ConnectedStarRefBots.
+        """
+        self.peer = peer
+        self.bot = bot
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+        self.bot = utils.get_input_user(await client.get_input_entity(self.bot))
+
+    def to_dict(self):
+        return {
+            '_': 'ConnectStarRefBotRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'bot': self.bot.to_dict() if isinstance(self.bot, TLObject) else self.bot
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\x8a4\xd5~',
+            self.peer._bytes(),
+            self.bot._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        _bot = reader.tgread_object()
+        return cls(peer=_peer, bot=_bot)
+
+
+class ConvertStarGiftRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x74bf076b
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, stargift: 'TypeInputSavedStarGift'):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.stargift = stargift
+
+    def to_dict(self):
+        return {
+            '_': 'ConvertStarGiftRequest',
+            'stargift': self.stargift.to_dict() if isinstance(self.stargift, TLObject) else self.stargift
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'k\x07\xbft',
+            self.stargift._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _stargift = reader.tgread_object()
+        return cls(stargift=_stargift)
+
+
+class EditConnectedStarRefBotRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xe4fca4a3
+    SUBCLASS_OF_ID = 0x235e1a67
+
+    def __init__(self, peer: 'TypeInputPeer', link: str, revoked: Optional[bool]=None):
+        """
+        :returns payments.ConnectedStarRefBots: Instance of ConnectedStarRefBots.
+        """
+        self.peer = peer
+        self.link = link
+        self.revoked = revoked
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'EditConnectedStarRefBotRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'link': self.link,
+            'revoked': self.revoked
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xa3\xa4\xfc\xe4',
+            struct.pack('<I', (0 if self.revoked is None or self.revoked is False else 1)),
+            self.peer._bytes(),
+            self.serialize_bytes(self.link),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _revoked = bool(flags & 1)
+        _peer = reader.tgread_object()
+        _link = reader.tgread_string()
+        return cls(peer=_peer, link=_link, revoked=_revoked)
+
+
 class ExportInvoiceRequest(TLRequest):
     CONSTRUCTOR_ID = 0xf91b065
     SUBCLASS_OF_ID = 0x36105432
@@ -166,6 +413,41 @@ class ExportInvoiceRequest(TLRequest):
         return cls(invoice_media=_invoice_media)
 
 
+class FulfillStarsSubscriptionRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xcc5bebb3
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, peer: 'TypeInputPeer', subscription_id: str):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.peer = peer
+        self.subscription_id = subscription_id
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'FulfillStarsSubscriptionRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'subscription_id': self.subscription_id
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xb3\xeb[\xcc',
+            self.peer._bytes(),
+            self.serialize_bytes(self.subscription_id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        _subscription_id = reader.tgread_string()
+        return cls(peer=_peer, subscription_id=_subscription_id)
+
+
 class GetBankCardDataRequest(TLRequest):
     CONSTRUCTOR_ID = 0x2e79d779
     SUBCLASS_OF_ID = 0x8c6dd68b
@@ -194,13 +476,137 @@ class GetBankCardDataRequest(TLRequest):
         return cls(number=_number)
 
 
+class GetConnectedStarRefBotRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xb7d998f0
+    SUBCLASS_OF_ID = 0x235e1a67
+
+    def __init__(self, peer: 'TypeInputPeer', bot: 'TypeInputUser'):
+        """
+        :returns payments.ConnectedStarRefBots: Instance of ConnectedStarRefBots.
+        """
+        self.peer = peer
+        self.bot = bot
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+        self.bot = utils.get_input_user(await client.get_input_entity(self.bot))
+
+    def to_dict(self):
+        return {
+            '_': 'GetConnectedStarRefBotRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'bot': self.bot.to_dict() if isinstance(self.bot, TLObject) else self.bot
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xf0\x98\xd9\xb7',
+            self.peer._bytes(),
+            self.bot._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        _bot = reader.tgread_object()
+        return cls(peer=_peer, bot=_bot)
+
+
+class GetConnectedStarRefBotsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x5869a553
+    SUBCLASS_OF_ID = 0x235e1a67
+
+    def __init__(self, peer: 'TypeInputPeer', limit: int, offset_date: Optional[datetime]=None, offset_link: Optional[str]=None):
+        """
+        :returns payments.ConnectedStarRefBots: Instance of ConnectedStarRefBots.
+        """
+        self.peer = peer
+        self.limit = limit
+        self.offset_date = offset_date
+        self.offset_link = offset_link
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetConnectedStarRefBotsRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'limit': self.limit,
+            'offset_date': self.offset_date,
+            'offset_link': self.offset_link
+        }
+
+    def _bytes(self):
+        assert ((self.offset_date or self.offset_date is not None) and (self.offset_link or self.offset_link is not None)) or ((self.offset_date is None or self.offset_date is False) and (self.offset_link is None or self.offset_link is False)), 'offset_date, offset_link parameters must all be False-y (like None) or all me True-y'
+        return b''.join((
+            b'S\xa5iX',
+            struct.pack('<I', (0 if self.offset_date is None or self.offset_date is False else 4) | (0 if self.offset_link is None or self.offset_link is False else 4)),
+            self.peer._bytes(),
+            b'' if self.offset_date is None or self.offset_date is False else (self.serialize_datetime(self.offset_date)),
+            b'' if self.offset_link is None or self.offset_link is False else (self.serialize_bytes(self.offset_link)),
+            struct.pack('<i', self.limit),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _peer = reader.tgread_object()
+        if flags & 4:
+            _offset_date = reader.tgread_date()
+        else:
+            _offset_date = None
+        if flags & 4:
+            _offset_link = reader.tgread_string()
+        else:
+            _offset_link = None
+        _limit = reader.read_int()
+        return cls(peer=_peer, limit=_limit, offset_date=_offset_date, offset_link=_offset_link)
+
+
+class GetGiveawayInfoRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xf4239425
+    SUBCLASS_OF_ID = 0x96a377bd
+
+    def __init__(self, peer: 'TypeInputPeer', msg_id: int):
+        """
+        :returns payments.GiveawayInfo: Instance of either GiveawayInfo, GiveawayInfoResults.
+        """
+        self.peer = peer
+        self.msg_id = msg_id
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetGiveawayInfoRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'msg_id': self.msg_id
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'%\x94#\xf4',
+            self.peer._bytes(),
+            struct.pack('<i', self.msg_id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        _msg_id = reader.read_int()
+        return cls(peer=_peer, msg_id=_msg_id)
+
+
 class GetPaymentFormRequest(TLRequest):
     CONSTRUCTOR_ID = 0x37148dbb
     SUBCLASS_OF_ID = 0xa0483f19
 
     def __init__(self, invoice: 'TypeInputInvoice', theme_params: Optional['TypeDataJSON']=None):
         """
-        :returns payments.PaymentForm: Instance of PaymentForm.
+        :returns payments.PaymentForm: Instance of either PaymentForm, PaymentFormStars, PaymentFormStarGift.
         """
         self.invoice = invoice
         self.theme_params = theme_params
@@ -238,7 +644,7 @@ class GetPaymentReceiptRequest(TLRequest):
 
     def __init__(self, peer: 'TypeInputPeer', msg_id: int):
         """
-        :returns payments.PaymentReceipt: Instance of PaymentReceipt.
+        :returns payments.PaymentReceipt: Instance of either PaymentReceipt, PaymentReceiptStars.
         """
         self.peer = peer
         self.msg_id = msg_id
@@ -267,6 +673,44 @@ class GetPaymentReceiptRequest(TLRequest):
         return cls(peer=_peer, msg_id=_msg_id)
 
 
+class GetPremiumGiftCodeOptionsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x2757ba54
+    SUBCLASS_OF_ID = 0xaa92583
+
+    def __init__(self, boost_peer: Optional['TypeInputPeer']=None):
+        """
+        :returns Vector<PremiumGiftCodeOption>: This type has no constructors.
+        """
+        self.boost_peer = boost_peer
+
+    async def resolve(self, client, utils):
+        if self.boost_peer:
+            self.boost_peer = utils.get_input_peer(await client.get_input_entity(self.boost_peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetPremiumGiftCodeOptionsRequest',
+            'boost_peer': self.boost_peer.to_dict() if isinstance(self.boost_peer, TLObject) else self.boost_peer
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b"T\xbaW'",
+            struct.pack('<I', (0 if self.boost_peer is None or self.boost_peer is False else 1)),
+            b'' if self.boost_peer is None or self.boost_peer is False else (self.boost_peer._bytes()),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        if flags & 1:
+            _boost_peer = reader.tgread_object()
+        else:
+            _boost_peer = None
+        return cls(boost_peer=_boost_peer)
+
+
 class GetSavedInfoRequest(TLRequest):
     CONSTRUCTOR_ID = 0x227d824b
     SUBCLASS_OF_ID = 0xad3cf146
@@ -284,6 +728,724 @@ class GetSavedInfoRequest(TLRequest):
     @classmethod
     def from_reader(cls, reader):
         return cls()
+
+
+class GetSavedStarGiftRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xb455a106
+    SUBCLASS_OF_ID = 0xd5112897
+
+    def __init__(self, stargift: List['TypeInputSavedStarGift']):
+        """
+        :returns payments.SavedStarGifts: Instance of SavedStarGifts.
+        """
+        self.stargift = stargift
+
+    def to_dict(self):
+        return {
+            '_': 'GetSavedStarGiftRequest',
+            'stargift': [] if self.stargift is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.stargift]
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\x06\xa1U\xb4',
+            b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.stargift)),b''.join(x._bytes() for x in self.stargift),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        reader.read_int()
+        _stargift = []
+        for _ in range(reader.read_int()):
+            _x = reader.tgread_object()
+            _stargift.append(_x)
+
+        return cls(stargift=_stargift)
+
+
+class GetSavedStarGiftsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x23830de9
+    SUBCLASS_OF_ID = 0xd5112897
+
+    def __init__(self, peer: 'TypeInputPeer', offset: str, limit: int, exclude_unsaved: Optional[bool]=None, exclude_saved: Optional[bool]=None, exclude_unlimited: Optional[bool]=None, exclude_limited: Optional[bool]=None, exclude_unique: Optional[bool]=None, sort_by_value: Optional[bool]=None):
+        """
+        :returns payments.SavedStarGifts: Instance of SavedStarGifts.
+        """
+        self.peer = peer
+        self.offset = offset
+        self.limit = limit
+        self.exclude_unsaved = exclude_unsaved
+        self.exclude_saved = exclude_saved
+        self.exclude_unlimited = exclude_unlimited
+        self.exclude_limited = exclude_limited
+        self.exclude_unique = exclude_unique
+        self.sort_by_value = sort_by_value
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetSavedStarGiftsRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'offset': self.offset,
+            'limit': self.limit,
+            'exclude_unsaved': self.exclude_unsaved,
+            'exclude_saved': self.exclude_saved,
+            'exclude_unlimited': self.exclude_unlimited,
+            'exclude_limited': self.exclude_limited,
+            'exclude_unique': self.exclude_unique,
+            'sort_by_value': self.sort_by_value
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xe9\r\x83#',
+            struct.pack('<I', (0 if self.exclude_unsaved is None or self.exclude_unsaved is False else 1) | (0 if self.exclude_saved is None or self.exclude_saved is False else 2) | (0 if self.exclude_unlimited is None or self.exclude_unlimited is False else 4) | (0 if self.exclude_limited is None or self.exclude_limited is False else 8) | (0 if self.exclude_unique is None or self.exclude_unique is False else 16) | (0 if self.sort_by_value is None or self.sort_by_value is False else 32)),
+            self.peer._bytes(),
+            self.serialize_bytes(self.offset),
+            struct.pack('<i', self.limit),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _exclude_unsaved = bool(flags & 1)
+        _exclude_saved = bool(flags & 2)
+        _exclude_unlimited = bool(flags & 4)
+        _exclude_limited = bool(flags & 8)
+        _exclude_unique = bool(flags & 16)
+        _sort_by_value = bool(flags & 32)
+        _peer = reader.tgread_object()
+        _offset = reader.tgread_string()
+        _limit = reader.read_int()
+        return cls(peer=_peer, offset=_offset, limit=_limit, exclude_unsaved=_exclude_unsaved, exclude_saved=_exclude_saved, exclude_unlimited=_exclude_unlimited, exclude_limited=_exclude_limited, exclude_unique=_exclude_unique, sort_by_value=_sort_by_value)
+
+
+class GetStarGiftUpgradePreviewRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x9c9abcb1
+    SUBCLASS_OF_ID = 0x5e2b68c7
+
+    def __init__(self, gift_id: int):
+        """
+        :returns payments.StarGiftUpgradePreview: Instance of StarGiftUpgradePreview.
+        """
+        self.gift_id = gift_id
+
+    def to_dict(self):
+        return {
+            '_': 'GetStarGiftUpgradePreviewRequest',
+            'gift_id': self.gift_id
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xb1\xbc\x9a\x9c',
+            struct.pack('<q', self.gift_id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _gift_id = reader.read_long()
+        return cls(gift_id=_gift_id)
+
+
+class GetStarGiftWithdrawalUrlRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xd06e93a8
+    SUBCLASS_OF_ID = 0xa2822dc5
+
+    def __init__(self, stargift: 'TypeInputSavedStarGift', password: 'TypeInputCheckPasswordSRP'):
+        """
+        :returns payments.StarGiftWithdrawalUrl: Instance of StarGiftWithdrawalUrl.
+        """
+        self.stargift = stargift
+        self.password = password
+
+    def to_dict(self):
+        return {
+            '_': 'GetStarGiftWithdrawalUrlRequest',
+            'stargift': self.stargift.to_dict() if isinstance(self.stargift, TLObject) else self.stargift,
+            'password': self.password.to_dict() if isinstance(self.password, TLObject) else self.password
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xa8\x93n\xd0',
+            self.stargift._bytes(),
+            self.password._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _stargift = reader.tgread_object()
+        _password = reader.tgread_object()
+        return cls(stargift=_stargift, password=_password)
+
+
+class GetStarGiftsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xc4563590
+    SUBCLASS_OF_ID = 0x6178d9a4
+
+    def __init__(self, hash: int):
+        """
+        :returns payments.StarGifts: Instance of either StarGiftsNotModified, StarGifts.
+        """
+        self.hash = hash
+
+    def to_dict(self):
+        return {
+            '_': 'GetStarGiftsRequest',
+            'hash': self.hash
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\x905V\xc4',
+            struct.pack('<i', self.hash),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _hash = reader.read_int()
+        return cls(hash=_hash)
+
+
+class GetStarsGiftOptionsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xd3c96bc8
+    SUBCLASS_OF_ID = 0xe9a3b7d5
+
+    def __init__(self, user_id: Optional['TypeInputUser']=None):
+        """
+        :returns Vector<StarsGiftOption>: This type has no constructors.
+        """
+        self.user_id = user_id
+
+    async def resolve(self, client, utils):
+        if self.user_id:
+            self.user_id = utils.get_input_user(await client.get_input_entity(self.user_id))
+
+    def to_dict(self):
+        return {
+            '_': 'GetStarsGiftOptionsRequest',
+            'user_id': self.user_id.to_dict() if isinstance(self.user_id, TLObject) else self.user_id
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xc8k\xc9\xd3',
+            struct.pack('<I', (0 if self.user_id is None or self.user_id is False else 1)),
+            b'' if self.user_id is None or self.user_id is False else (self.user_id._bytes()),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        if flags & 1:
+            _user_id = reader.tgread_object()
+        else:
+            _user_id = None
+        return cls(user_id=_user_id)
+
+
+class GetStarsGiveawayOptionsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xbd1efd3e
+    SUBCLASS_OF_ID = 0xf8db30a9
+
+    def to_dict(self):
+        return {
+            '_': 'GetStarsGiveawayOptionsRequest'
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'>\xfd\x1e\xbd',
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        return cls()
+
+
+class GetStarsRevenueAdsAccountUrlRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xd1d7efc5
+    SUBCLASS_OF_ID = 0x4a228b15
+
+    def __init__(self, peer: 'TypeInputPeer'):
+        """
+        :returns payments.StarsRevenueAdsAccountUrl: Instance of StarsRevenueAdsAccountUrl.
+        """
+        self.peer = peer
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetStarsRevenueAdsAccountUrlRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xc5\xef\xd7\xd1',
+            self.peer._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        return cls(peer=_peer)
+
+
+class GetStarsRevenueStatsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xd91ffad6
+    SUBCLASS_OF_ID = 0xa54755f3
+
+    def __init__(self, peer: 'TypeInputPeer', dark: Optional[bool]=None):
+        """
+        :returns payments.StarsRevenueStats: Instance of StarsRevenueStats.
+        """
+        self.peer = peer
+        self.dark = dark
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetStarsRevenueStatsRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'dark': self.dark
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xd6\xfa\x1f\xd9',
+            struct.pack('<I', (0 if self.dark is None or self.dark is False else 1)),
+            self.peer._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _dark = bool(flags & 1)
+        _peer = reader.tgread_object()
+        return cls(peer=_peer, dark=_dark)
+
+
+class GetStarsRevenueWithdrawalUrlRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x13bbe8b3
+    SUBCLASS_OF_ID = 0x8466a0ee
+
+    def __init__(self, peer: 'TypeInputPeer', stars: int, password: 'TypeInputCheckPasswordSRP'):
+        """
+        :returns payments.StarsRevenueWithdrawalUrl: Instance of StarsRevenueWithdrawalUrl.
+        """
+        self.peer = peer
+        self.stars = stars
+        self.password = password
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetStarsRevenueWithdrawalUrlRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'stars': self.stars,
+            'password': self.password.to_dict() if isinstance(self.password, TLObject) else self.password
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xb3\xe8\xbb\x13',
+            self.peer._bytes(),
+            struct.pack('<q', self.stars),
+            self.password._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        _stars = reader.read_long()
+        _password = reader.tgread_object()
+        return cls(peer=_peer, stars=_stars, password=_password)
+
+
+class GetStarsStatusRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x104fcfa7
+    SUBCLASS_OF_ID = 0x6e9c1d6f
+
+    def __init__(self, peer: 'TypeInputPeer'):
+        """
+        :returns payments.StarsStatus: Instance of StarsStatus.
+        """
+        self.peer = peer
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetStarsStatusRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xa7\xcfO\x10',
+            self.peer._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        return cls(peer=_peer)
+
+
+class GetStarsSubscriptionsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x32512c5
+    SUBCLASS_OF_ID = 0x6e9c1d6f
+
+    def __init__(self, peer: 'TypeInputPeer', offset: str, missing_balance: Optional[bool]=None):
+        """
+        :returns payments.StarsStatus: Instance of StarsStatus.
+        """
+        self.peer = peer
+        self.offset = offset
+        self.missing_balance = missing_balance
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetStarsSubscriptionsRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'offset': self.offset,
+            'missing_balance': self.missing_balance
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xc5\x12%\x03',
+            struct.pack('<I', (0 if self.missing_balance is None or self.missing_balance is False else 1)),
+            self.peer._bytes(),
+            self.serialize_bytes(self.offset),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _missing_balance = bool(flags & 1)
+        _peer = reader.tgread_object()
+        _offset = reader.tgread_string()
+        return cls(peer=_peer, offset=_offset, missing_balance=_missing_balance)
+
+
+class GetStarsTopupOptionsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xc00ec7d3
+    SUBCLASS_OF_ID = 0xd4fe8a99
+
+    def to_dict(self):
+        return {
+            '_': 'GetStarsTopupOptionsRequest'
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xd3\xc7\x0e\xc0',
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        return cls()
+
+
+class GetStarsTransactionsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x69da4557
+    SUBCLASS_OF_ID = 0x6e9c1d6f
+
+    def __init__(self, peer: 'TypeInputPeer', offset: str, limit: int, inbound: Optional[bool]=None, outbound: Optional[bool]=None, ascending: Optional[bool]=None, subscription_id: Optional[str]=None):
+        """
+        :returns payments.StarsStatus: Instance of StarsStatus.
+        """
+        self.peer = peer
+        self.offset = offset
+        self.limit = limit
+        self.inbound = inbound
+        self.outbound = outbound
+        self.ascending = ascending
+        self.subscription_id = subscription_id
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetStarsTransactionsRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'offset': self.offset,
+            'limit': self.limit,
+            'inbound': self.inbound,
+            'outbound': self.outbound,
+            'ascending': self.ascending,
+            'subscription_id': self.subscription_id
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'WE\xdai',
+            struct.pack('<I', (0 if self.inbound is None or self.inbound is False else 1) | (0 if self.outbound is None or self.outbound is False else 2) | (0 if self.ascending is None or self.ascending is False else 4) | (0 if self.subscription_id is None or self.subscription_id is False else 8)),
+            b'' if self.subscription_id is None or self.subscription_id is False else (self.serialize_bytes(self.subscription_id)),
+            self.peer._bytes(),
+            self.serialize_bytes(self.offset),
+            struct.pack('<i', self.limit),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _inbound = bool(flags & 1)
+        _outbound = bool(flags & 2)
+        _ascending = bool(flags & 4)
+        if flags & 8:
+            _subscription_id = reader.tgread_string()
+        else:
+            _subscription_id = None
+        _peer = reader.tgread_object()
+        _offset = reader.tgread_string()
+        _limit = reader.read_int()
+        return cls(peer=_peer, offset=_offset, limit=_limit, inbound=_inbound, outbound=_outbound, ascending=_ascending, subscription_id=_subscription_id)
+
+
+class GetStarsTransactionsByIDRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x27842d2e
+    SUBCLASS_OF_ID = 0x6e9c1d6f
+
+    def __init__(self, peer: 'TypeInputPeer', id: List['TypeInputStarsTransaction']):
+        """
+        :returns payments.StarsStatus: Instance of StarsStatus.
+        """
+        self.peer = peer
+        self.id = id
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetStarsTransactionsByIDRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'id': [] if self.id is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.id]
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b".-\x84'",
+            self.peer._bytes(),
+            b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.id)),b''.join(x._bytes() for x in self.id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        reader.read_int()
+        _id = []
+        for _ in range(reader.read_int()):
+            _x = reader.tgread_object()
+            _id.append(_x)
+
+        return cls(peer=_peer, id=_id)
+
+
+class GetSuggestedStarRefBotsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xd6b48f7
+    SUBCLASS_OF_ID = 0x70189243
+
+    def __init__(self, peer: 'TypeInputPeer', offset: str, limit: int, order_by_revenue: Optional[bool]=None, order_by_date: Optional[bool]=None):
+        """
+        :returns payments.SuggestedStarRefBots: Instance of SuggestedStarRefBots.
+        """
+        self.peer = peer
+        self.offset = offset
+        self.limit = limit
+        self.order_by_revenue = order_by_revenue
+        self.order_by_date = order_by_date
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'GetSuggestedStarRefBotsRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'offset': self.offset,
+            'limit': self.limit,
+            'order_by_revenue': self.order_by_revenue,
+            'order_by_date': self.order_by_date
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xf7Hk\r',
+            struct.pack('<I', (0 if self.order_by_revenue is None or self.order_by_revenue is False else 1) | (0 if self.order_by_date is None or self.order_by_date is False else 2)),
+            self.peer._bytes(),
+            self.serialize_bytes(self.offset),
+            struct.pack('<i', self.limit),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _order_by_revenue = bool(flags & 1)
+        _order_by_date = bool(flags & 2)
+        _peer = reader.tgread_object()
+        _offset = reader.tgread_string()
+        _limit = reader.read_int()
+        return cls(peer=_peer, offset=_offset, limit=_limit, order_by_revenue=_order_by_revenue, order_by_date=_order_by_date)
+
+
+class GetUniqueStarGiftRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xa1974d72
+    SUBCLASS_OF_ID = 0x78b0c5fb
+
+    def __init__(self, slug: str):
+        """
+        :returns payments.UniqueStarGift: Instance of UniqueStarGift.
+        """
+        self.slug = slug
+
+    def to_dict(self):
+        return {
+            '_': 'GetUniqueStarGiftRequest',
+            'slug': self.slug
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'rM\x97\xa1',
+            self.serialize_bytes(self.slug),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _slug = reader.tgread_string()
+        return cls(slug=_slug)
+
+
+class LaunchPrepaidGiveawayRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x5ff58f20
+    SUBCLASS_OF_ID = 0x8af52aac
+
+    def __init__(self, peer: 'TypeInputPeer', giveaway_id: int, purpose: 'TypeInputStorePaymentPurpose'):
+        """
+        :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
+        """
+        self.peer = peer
+        self.giveaway_id = giveaway_id
+        self.purpose = purpose
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'LaunchPrepaidGiveawayRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'giveaway_id': self.giveaway_id,
+            'purpose': self.purpose.to_dict() if isinstance(self.purpose, TLObject) else self.purpose
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b' \x8f\xf5_',
+            self.peer._bytes(),
+            struct.pack('<q', self.giveaway_id),
+            self.purpose._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        _giveaway_id = reader.read_long()
+        _purpose = reader.tgread_object()
+        return cls(peer=_peer, giveaway_id=_giveaway_id, purpose=_purpose)
+
+
+class RefundStarsChargeRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x25ae8f4a
+    SUBCLASS_OF_ID = 0x8af52aac
+
+    def __init__(self, user_id: 'TypeInputUser', charge_id: str):
+        """
+        :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
+        """
+        self.user_id = user_id
+        self.charge_id = charge_id
+
+    async def resolve(self, client, utils):
+        self.user_id = utils.get_input_user(await client.get_input_entity(self.user_id))
+
+    def to_dict(self):
+        return {
+            '_': 'RefundStarsChargeRequest',
+            'user_id': self.user_id.to_dict() if isinstance(self.user_id, TLObject) else self.user_id,
+            'charge_id': self.charge_id
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'J\x8f\xae%',
+            self.user_id._bytes(),
+            self.serialize_bytes(self.charge_id),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _user_id = reader.tgread_object()
+        _charge_id = reader.tgread_string()
+        return cls(user_id=_user_id, charge_id=_charge_id)
+
+
+class SaveStarGiftRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x2a2a697c
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, stargift: 'TypeInputSavedStarGift', unsave: Optional[bool]=None):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.stargift = stargift
+        self.unsave = unsave
+
+    def to_dict(self):
+        return {
+            '_': 'SaveStarGiftRequest',
+            'stargift': self.stargift.to_dict() if isinstance(self.stargift, TLObject) else self.stargift,
+            'unsave': self.unsave
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'|i**',
+            struct.pack('<I', (0 if self.unsave is None or self.unsave is False else 1)),
+            self.stargift._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _unsave = bool(flags & 1)
+        _stargift = reader.tgread_object()
+        return cls(stargift=_stargift, unsave=_unsave)
 
 
 class SendPaymentFormRequest(TLRequest):
@@ -344,6 +1506,184 @@ class SendPaymentFormRequest(TLRequest):
         else:
             _tip_amount = None
         return cls(form_id=_form_id, invoice=_invoice, credentials=_credentials, requested_info_id=_requested_info_id, shipping_option_id=_shipping_option_id, tip_amount=_tip_amount)
+
+
+class SendStarsFormRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x7998c914
+    SUBCLASS_OF_ID = 0x8ae16a9d
+
+    def __init__(self, form_id: int, invoice: 'TypeInputInvoice'):
+        """
+        :returns payments.PaymentResult: Instance of either PaymentResult, PaymentVerificationNeeded.
+        """
+        self.form_id = form_id
+        self.invoice = invoice
+
+    def to_dict(self):
+        return {
+            '_': 'SendStarsFormRequest',
+            'form_id': self.form_id,
+            'invoice': self.invoice.to_dict() if isinstance(self.invoice, TLObject) else self.invoice
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\x14\xc9\x98y',
+            struct.pack('<q', self.form_id),
+            self.invoice._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _form_id = reader.read_long()
+        _invoice = reader.tgread_object()
+        return cls(form_id=_form_id, invoice=_invoice)
+
+
+class ToggleChatStarGiftNotificationsRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x60eaefa1
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, peer: 'TypeInputPeer', enabled: Optional[bool]=None):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.peer = peer
+        self.enabled = enabled
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'ToggleChatStarGiftNotificationsRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'enabled': self.enabled
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xa1\xef\xea`',
+            struct.pack('<I', (0 if self.enabled is None or self.enabled is False else 1)),
+            self.peer._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _enabled = bool(flags & 1)
+        _peer = reader.tgread_object()
+        return cls(peer=_peer, enabled=_enabled)
+
+
+class ToggleStarGiftsPinnedToTopRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x1513e7b0
+    SUBCLASS_OF_ID = 0xf5b399ac
+
+    def __init__(self, peer: 'TypeInputPeer', stargift: List['TypeInputSavedStarGift']):
+        """
+        :returns Bool: This type has no constructors.
+        """
+        self.peer = peer
+        self.stargift = stargift
+
+    async def resolve(self, client, utils):
+        self.peer = utils.get_input_peer(await client.get_input_entity(self.peer))
+
+    def to_dict(self):
+        return {
+            '_': 'ToggleStarGiftsPinnedToTopRequest',
+            'peer': self.peer.to_dict() if isinstance(self.peer, TLObject) else self.peer,
+            'stargift': [] if self.stargift is None else [x.to_dict() if isinstance(x, TLObject) else x for x in self.stargift]
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xb0\xe7\x13\x15',
+            self.peer._bytes(),
+            b'\x15\xc4\xb5\x1c',struct.pack('<i', len(self.stargift)),b''.join(x._bytes() for x in self.stargift),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _peer = reader.tgread_object()
+        reader.read_int()
+        _stargift = []
+        for _ in range(reader.read_int()):
+            _x = reader.tgread_object()
+            _stargift.append(_x)
+
+        return cls(peer=_peer, stargift=_stargift)
+
+
+class TransferStarGiftRequest(TLRequest):
+    CONSTRUCTOR_ID = 0x7f18176a
+    SUBCLASS_OF_ID = 0x8af52aac
+
+    def __init__(self, stargift: 'TypeInputSavedStarGift', to_id: 'TypeInputPeer'):
+        """
+        :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
+        """
+        self.stargift = stargift
+        self.to_id = to_id
+
+    async def resolve(self, client, utils):
+        self.to_id = utils.get_input_peer(await client.get_input_entity(self.to_id))
+
+    def to_dict(self):
+        return {
+            '_': 'TransferStarGiftRequest',
+            'stargift': self.stargift.to_dict() if isinstance(self.stargift, TLObject) else self.stargift,
+            'to_id': self.to_id.to_dict() if isinstance(self.to_id, TLObject) else self.to_id
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'j\x17\x18\x7f',
+            self.stargift._bytes(),
+            self.to_id._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        _stargift = reader.tgread_object()
+        _to_id = reader.tgread_object()
+        return cls(stargift=_stargift, to_id=_to_id)
+
+
+class UpgradeStarGiftRequest(TLRequest):
+    CONSTRUCTOR_ID = 0xaed6e4f5
+    SUBCLASS_OF_ID = 0x8af52aac
+
+    def __init__(self, stargift: 'TypeInputSavedStarGift', keep_original_details: Optional[bool]=None):
+        """
+        :returns Updates: Instance of either UpdatesTooLong, UpdateShortMessage, UpdateShortChatMessage, UpdateShort, UpdatesCombined, Updates, UpdateShortSentMessage.
+        """
+        self.stargift = stargift
+        self.keep_original_details = keep_original_details
+
+    def to_dict(self):
+        return {
+            '_': 'UpgradeStarGiftRequest',
+            'stargift': self.stargift.to_dict() if isinstance(self.stargift, TLObject) else self.stargift,
+            'keep_original_details': self.keep_original_details
+        }
+
+    def _bytes(self):
+        return b''.join((
+            b'\xf5\xe4\xd6\xae',
+            struct.pack('<I', (0 if self.keep_original_details is None or self.keep_original_details is False else 1)),
+            self.stargift._bytes(),
+        ))
+
+    @classmethod
+    def from_reader(cls, reader):
+        flags = reader.read_int()
+
+        _keep_original_details = bool(flags & 1)
+        _stargift = reader.tgread_object()
+        return cls(stargift=_stargift, keep_original_details=_keep_original_details)
 
 
 class ValidateRequestedInfoRequest(TLRequest):

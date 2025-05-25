@@ -445,6 +445,7 @@ def get_input_media(
     if isinstance(media, types.MessageMediaPhoto):
         return types.InputMediaPhoto(
             id=get_input_photo(media.photo),
+            spoiler=media.spoiler,
             ttl_seconds=ttl or media.ttl_seconds
         )
 
@@ -498,6 +499,14 @@ def get_input_media(
 
     if isinstance(media, types.MessageMediaGeo):
         return types.InputMediaGeoPoint(geo_point=get_input_geo(media.geo))
+
+    if isinstance(media, types.MessageMediaGeoLive):
+        return types.InputMediaGeoLive(
+            geo_point=get_input_geo(media.geo),
+            period=media.period,
+            heading=media.heading,
+            proximity_notification_radius=media.proximity_notification_radius,
+        )
 
     if isinstance(media, types.MessageMediaVenue):
         return types.InputMediaVenue(
@@ -599,6 +608,9 @@ def get_message_id(message):
 
     if isinstance(message, int):
         return message
+
+    if isinstance(message, types.InputMessageID):
+        return message.id
 
     try:
         if message.SUBCLASS_OF_ID == 0x790009e3:
@@ -896,7 +908,7 @@ def is_list_like(obj):
     enough. Things like ``open()`` are also iterable (and probably many
     other things), so just support the commonly known list-like objects.
     """
-    return isinstance(obj, (list, tuple, set, dict, GeneratorType))
+    return isinstance(obj, (list, tuple, set, dict, range, GeneratorType))
 
 
 def parse_phone(phone):
